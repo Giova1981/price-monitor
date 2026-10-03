@@ -381,24 +381,44 @@ def processa_prodotto(prodotto, pagina, stato_prodotto):
 
     stato_precedente = stato_prodotto.get("stato")
 
-    # Prima esecuzione del prodotto.
-    # Registriamo la situazione senza inviare email.
-    if stato_precedente is None:
-        if prezzo < soglia:
+    # Prima rilevazione di un nuovo prodotto.
+if stato_precedente is None:
+
+    stato_prodotto["ultimo_prezzo"] = float(prezzo)
+    stato_prodotto["soglia"] = float(soglia)
+
+    if prezzo < soglia:
+
+        print(
+            "Nuovo prodotto già sotto soglia: "
+            "invio alert iniziale."
+        )
+
+        if email_sotto_soglia(
+            prodotto,
+            prezzo,
+            ulteriore=False
+        ):
             stato_prodotto["stato"] = "sotto"
             stato_prodotto["minimo_notificato"] = float(prezzo)
         else:
-            stato_prodotto["stato"] = "sopra"
+            # L'email non è partita:
+            # lasciamo lo stato non inizializzato in modo
+            # che il prossimo controllo possa riprovare.
+            stato_prodotto["stato"] = None
             stato_prodotto["minimo_notificato"] = None
 
-        stato_prodotto["ultimo_prezzo"] = float(prezzo)
-        stato_prodotto["soglia"] = float(soglia)
+    else:
+
+        stato_prodotto["stato"] = "sopra"
+        stato_prodotto["minimo_notificato"] = None
 
         print(
-            "Prima rilevazione: stato inizializzato. "
-            "Nessuna email inviata."
+            "Prima rilevazione: prodotto sopra soglia. "
+            "Nessuna email necessaria."
         )
-        return
+
+    return
 
     if prezzo < soglia:
 
