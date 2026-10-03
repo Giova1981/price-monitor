@@ -32,6 +32,6 @@
     "nome": "SVR Topialyse Gel Lavant - Detergente Delicato Per Pelle Molto Secca E Atopica 1000 ml",
     "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html",
     "soglia": 10.00,
-    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
+    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME", "EMAIL_LEO"]
   }
 ]
