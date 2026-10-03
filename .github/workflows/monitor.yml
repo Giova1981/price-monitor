@@ -3,6 +3,10 @@ name: Price Monitor
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "0 8,13,18,22 * * *"
+      timezone: "Europe/Rome"
+
 permissions:
   contents: write
 
