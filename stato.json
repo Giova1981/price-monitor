@@ -1,0 +1,26 @@
+{
+  "sun-secure-spf50": {
+    "stato": "sopra",
+    "ultimo_prezzo": 19.23,
+    "minimo_notificato": null,
+    "soglia": 12.0,
+    "errori_consecutivi": 0,
+    "errore_notificato": false
+  },
+  "supradyn-ricarica-60": {
+    "stato": "sopra",
+    "ultimo_prezzo": 15.86,
+    "minimo_notificato": null,
+    "soglia": 15.0,
+    "errori_consecutivi": 0,
+    "errore_notificato": false
+  },
+  "citoethyl-3x15ml": {
+    "stato": "sopra",
+    "ultimo_prezzo": 14.61,
+    "minimo_notificato": null,
+    "soglia": 14.0,
+    "errori_consecutivi": 0,
+    "errore_notificato": false
+  }
+}
