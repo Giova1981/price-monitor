@@ -1,57 +1,111 @@
 name: Price Monitor
 
 on:
+  # Permette di avviare manualmente il monitor
+  # dalla sezione Actions di GitHub.
   workflow_dispatch:
 
+  # Controlli automatici giornalieri.
   schedule:
     - cron: "0 8,13,18,22 * * *"
       timezone: "Europe/Rome"
 
+
+# Necessario per permettere al workflow di aggiornare
+# automaticamente stato.json nel repository.
 permissions:
   contents: write
 
+
+# Evita che due esecuzioni del monitor lavorino
+# contemporaneamente sullo stesso stato.json.
+concurrency:
+  group: price-monitor
+  cancel-in-progress: false
+
+
 jobs:
+
   monitor:
+
     runs-on: ubuntu-latest
 
     steps:
+
+      # ======================================================
+      # REPOSITORY
+      # ======================================================
+
       - name: Scarica repository
         uses: actions/checkout@v4
+
+
+      # ======================================================
+      # PYTHON
+      # ======================================================
 
       - name: Configura Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+
+      # ======================================================
+      # DIPENDENZE
+      # ======================================================
+
       - name: Installa dipendenze
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+
+      # ======================================================
+      # PRICE MONITOR
+      # ======================================================
+
       - name: Esegui Price Monitor
         env:
+
+          # TinyFish
           TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
 
+          # Brevo
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER: ${{ secrets.BREVO_SENDER }}
 
+          # Destinatari
           EMAIL_MANDARINO: ${{ secrets.EMAIL_MANDARINO }}
           EMAIL_ME: ${{ secrets.EMAIL_ME }}
 
         run: python monitor.py
 
+
+      # ======================================================
+      # SALVATAGGIO STATO
+      # ======================================================
+
       - name: Salva stato monitor
+        if: always()
         run: |
-          if [ -f stato.json ]; then
-            git config user.name "price-monitor-bot"
-            git config user.email "price-monitor-bot@users.noreply.github.com"
 
-            git add stato.json
+          if [ ! -f stato.json ]; then
+            echo "stato.json non presente."
+            exit 0
+          fi
 
-            if ! git diff --cached --quiet; then
-              git commit -m "Aggiorna stato Price Monitor"
-              git push
-            else
-              echo "Nessuna modifica allo stato."
-            fi
+          git config user.name "price-monitor-bot"
+          git config user.email "price-monitor-bot@users.noreply.github.com"
+
+          git add stato.json
+
+          if git diff --cached --quiet; then
+
+            echo "Nessuna modifica allo stato."
+
+          else
+
+            git commit -m "Aggiorna stato Price Monitor"
+            git push
+
           fi
