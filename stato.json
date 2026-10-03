@@ -5,7 +5,8 @@
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
-    "errore_notificato": false
+    "errore_notificato": false,
+    "destinatari_notificati": []
   },
   "supradyn-ricarica-60": {
     "stato": "sopra",
@@ -13,7 +14,8 @@
     "minimo_notificato": null,
     "soglia": 15.0,
     "errori_consecutivi": 0,
-    "errore_notificato": false
+    "errore_notificato": false,
+    "destinatari_notificati": []
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
@@ -21,7 +23,8 @@
     "minimo_notificato": null,
     "soglia": 14.0,
     "errori_consecutivi": 0,
-    "errore_notificato": false
+    "errore_notificato": false,
+    "destinatari_notificati": []
   },
   "sun-secure-spf30": {
     "stato": "sopra",
@@ -29,7 +32,8 @@
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
-    "errore_notificato": false
+    "errore_notificato": false,
+    "destinatari_notificati": []
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sotto",
@@ -37,6 +41,10 @@
     "minimo_notificato": 8.27,
     "soglia": 10.0,
     "errori_consecutivi": 0,
-    "errore_notificato": false
+    "errore_notificato": false,
+    "destinatari_notificati": [
+      "EMAIL_MANDARINO",
+      "EMAIL_ME"
+    ]
   }
 }
