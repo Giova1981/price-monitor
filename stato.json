@@ -30,13 +30,5 @@
     "soglia": 12.0,
     "errori_consecutivi": 0,
     "errore_notificato": false
-  },
-  "SVR Topialyse Gel Lavant - Detergente Delicato Per Pelle Molto Secca E Atopica 1000 ml": {
-    "stato": "sotto",
-    "ultimo_prezzo": 8.27,
-    "minimo_notificato": 8.27,
-    "soglia": 10.0,
-    "errori_consecutivi": 0,
-    "errore_notificato": false
   }
 }
