@@ -44,7 +44,8 @@
     "errore_notificato": false,
     "destinatari_notificati": [
       "EMAIL_MANDARINO",
-      "EMAIL_ME"
+      "EMAIL_ME",
+      "EMAIL_LEO"
     ]
   }
 }
