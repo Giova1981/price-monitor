@@ -31,9 +31,8 @@ jobs:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER: ${{ secrets.BREVO_SENDER }}
 
-          ALERT_EMAIL_1: ${{ secrets.ALERT_EMAIL_1 }}
-          ALERT_EMAIL_2: ${{ secrets.ALERT_EMAIL_2 }}
-          ALERT_EMAIL_3: ${{ secrets.ALERT_EMAIL_3 }}
+          ALERT_EMAIL_1: ${{ secrets.EMAIL_MANDARINO }}
+          ALERT_EMAIL_2: ${{ secrets.EMAIL_ME }}
 
         run: python monitor.py
 
