@@ -11,7 +11,7 @@
     "nome": "SVR Sun Secure Eau Solaire SPF30 - Acqua Solare Bi-Fasica Corpo 200 ml",
     "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf30.html",
     "soglia": 12.00,
-    "destinatari": ["EMAIL_MANDARINO"]
+    "destinatari": ["EMAIL_MANDARINO", "EMAIL_LEO"]
   },
   {
     "id": "supradyn-ricarica-60",
