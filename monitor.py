@@ -5,320 +5,538 @@ import sys
 from decimal import Decimal, InvalidOperation
 
 import requests
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 
 FILE_PRODOTTI = "prodotti.json"
+FILE_STATO = "stato.json"
 
-BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
-BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
-BREVO_SENDER = os.environ.get("BREVO_SENDER")
+TINYFISH_URL = "https://api.fetch.tinyfish.ai"
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
+
+MAX_ERRORI_CONSECUTIVI = 3
 
 
-def carica_prodotti():
-    """Carica l'elenco dei prodotti dal file JSON."""
+def carica_json(percorso, default=None):
     try:
-        with open(FILE_PRODOTTI, "r", encoding="utf-8") as file:
-            prodotti = json.load(file)
-
-        if not isinstance(prodotti, list):
-            raise ValueError("prodotti.json deve contenere una lista.")
-
-        return prodotti
-
-    except (OSError, json.JSONDecodeError, ValueError) as errore:
-        print(f"ERRORE durante la lettura di {FILE_PRODOTTI}: {errore}")
+        with open(percorso, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return default
+    except json.JSONDecodeError as errore:
+        print(f"ERRORE: {percorso} contiene JSON non valido: {errore}")
         sys.exit(1)
 
 
-def converti_prezzo(valore):
-    """
-    Converte prezzi come:
-    14,79 €
-    € 14,79
-    14.79
-    in Decimal('14.79').
-    """
-    if valore is None:
-        return None
+def salva_stato(stato):
+    with open(FILE_STATO, "w", encoding="utf-8") as file:
+        json.dump(
+            stato,
+            file,
+            indent=2,
+            ensure_ascii=False
+        )
 
-    testo = str(valore).strip()
 
-    match = re.search(r"(\d{1,4}[.,]\d{2})", testo)
+def euro(valore):
+    return f"{Decimal(str(valore)):.2f}".replace(".", ",") + " €"
+
+
+def estrai_prezzo_farmasave(testo):
+    """
+    Cerca esclusivamente il prezzo associato alla dicitura
+    'Prezzo Farmasave', evitando prezzo di listino,
+    prezzo più basso 30GG e prodotti correlati.
+    """
+
+    pattern = (
+        r"Prezzo\s+Farmasave"
+        r"[\s*:#\-]*"
+        r"(\d{1,4}[.,]\d{2})\s*€"
+    )
+
+    match = re.search(
+        pattern,
+        testo,
+        flags=re.IGNORECASE
+    )
 
     if not match:
         return None
 
-    numero = match.group(1).replace(",", ".")
+    valore = match.group(1).replace(",", ".")
 
     try:
-        return Decimal(numero)
+        prezzo = Decimal(valore)
+
+        if prezzo <= 0:
+            return None
+
+        return prezzo
+
     except InvalidOperation:
         return None
 
 
-def rileva_prezzo(page, prodotto):
-    """Apre la pagina del prodotto e cerca il prezzo."""
+def recupera_pagine_tinyfish(prodotti):
+    api_key = os.environ.get("TINYFISH_API_KEY")
 
-    nome = prodotto["nome"]
-    url = prodotto["url"]
+    if not api_key:
+        raise RuntimeError("TINYFISH_API_KEY non configurata.")
 
-    print(f"\nControllo: {nome}")
-    print(f"URL: {url}")
+    headers = {
+        "X-API-Key": api_key,
+        "Content-Type": "application/json"
+    }
 
-    try:
-        response = page.goto(
-            url,
-            wait_until="domcontentloaded",
-            timeout=45000
-        )
+    payload = {
+        "urls": [prodotto["url"] for prodotto in prodotti],
+        "format": "markdown"
+    }
 
-        if response is None:
-            print("ERRORE: nessuna risposta HTTP.")
-            return None
+    risposta = requests.post(
+        TINYFISH_URL,
+        headers=headers,
+        json=payload,
+        timeout=120
+    )
 
-        print(f"HTTP status: {response.status}")
+    risposta.raise_for_status()
 
-        # Attendiamo che eventuale JavaScript della pagina venga eseguito.
-        page.wait_for_timeout(5000)
+    dati = risposta.json()
 
-        contenuto = page.content()
+    pagine = {}
 
-        # Individuazione esplicita di una possibile pagina anti-bot.
-        indicatori_antibot = [
-            "verify you are not a robot",
-            "verifying you are human",
-            "enable javascript",
-            "checking your browser",
-            "captcha"
-        ]
+    for pagina in dati.get("results", []):
+        url = pagina.get("url")
+        pagine[url] = pagina
 
-        contenuto_lower = contenuto.lower()
+    errori = {}
 
-        for indicatore in indicatori_antibot:
-            if indicatore in contenuto_lower:
-                print(
-                    "ERRORE: Farmasave ha restituito "
-                    "una pagina di verifica/anti-bot."
-                )
-                return None
+    for errore in dati.get("errors", []):
+        url = errore.get("url")
+        errori[url] = errore
 
-        # Prima strategia:
-        # meta tag comunemente utilizzati dai siti e-commerce.
-        selettori = [
-            'meta[property="product:price:amount"]',
-            'meta[itemprop="price"]',
-            '[itemprop="price"]',
-            '.price'
-        ]
-
-        for selettore in selettori:
-            elementi = page.locator(selettore)
-
-            try:
-                numero_elementi = elementi.count()
-            except Exception:
-                continue
-
-            for i in range(min(numero_elementi, 10)):
-                elemento = elementi.nth(i)
-
-                valore = elemento.get_attribute("content")
-
-                if not valore:
-                    try:
-                        valore = elemento.inner_text(timeout=2000)
-                    except Exception:
-                        continue
-
-                prezzo = converti_prezzo(valore)
-
-                if prezzo is not None:
-                    print(
-                        f"Prezzo individuato con '{selettore}': "
-                        f"{prezzo:.2f} €"
-                    )
-                    return prezzo
-
-        print("ERRORE: nessun prezzo attendibile individuato.")
-        return None
-
-    except PlaywrightTimeoutError:
-        print("ERRORE: timeout durante il caricamento della pagina.")
-        return None
-
-    except Exception as errore:
-        print(f"ERRORE durante il controllo della pagina: {errore}")
-        return None
+    return pagine, errori
 
 
 def recupera_destinatari(prodotto):
-    """
-    Traduce i nomi presenti in prodotti.json:
-    ALERT_EMAIL_1, ALERT_EMAIL_2...
-    nei veri indirizzi conservati nei Secrets.
-    """
-
     destinatari = []
 
     for nome_secret in prodotto.get("destinatari", []):
         email = os.environ.get(nome_secret)
 
-        if not email:
+        if email:
+            destinatari.append({
+                "email": email
+            })
+        else:
             print(
-                f"ATTENZIONE: la variabile {nome_secret} "
-                "non è disponibile."
+                f"ATTENZIONE: Secret {nome_secret} "
+                f"non disponibile."
             )
-            continue
-
-        destinatari.append(email)
 
     return destinatari
 
 
-def invia_alert(prodotto, prezzo, destinatari):
-    """Invia l'alert tramite API Brevo."""
+def invia_email(prodotto, oggetto, messaggio):
+    api_key = os.environ.get("BREVO_API_KEY")
+    mittente = os.environ.get("BREVO_SENDER")
 
-    if not BREVO_API_KEY:
-        print("ERRORE: BREVO_API_KEY non disponibile.")
+    if not api_key or not mittente:
+        print("ERRORE: configurazione Brevo incompleta.")
         return False
 
-    if not BREVO_SENDER:
-        print("ERRORE: BREVO_SENDER non disponibile.")
-        return False
+    destinatari = recupera_destinatari(prodotto)
 
     if not destinatari:
-        print("ERRORE: nessun destinatario configurato.")
+        print(
+            f"ERRORE: nessun destinatario disponibile "
+            f"per {prodotto['nome']}."
+        )
         return False
-
-    soglia = Decimal(str(prodotto["soglia"]))
-
-    destinatari_brevo = [
-        {"email": email}
-        for email in destinatari
-    ]
-
-    subject = (
-        f"Price Monitor - {prodotto['nome']} "
-        f"a {prezzo:.2f} €"
-    )
-
-    testo = f"""
-ALERT PREZZO
-
-Prodotto:
-{prodotto['nome']}
-
-Prezzo rilevato:
-{prezzo:.2f} €
-
-Soglia impostata:
-{ soglia:.2f} €
-
-Il prezzo è sceso sotto la soglia impostata.
-
-Link al prodotto:
-{prodotto['url']}
-""".strip()
 
     payload = {
         "sender": {
             "name": "Price Monitor",
-            "email": BREVO_SENDER
+            "email": mittente
         },
-        "to": destinatari_brevo,
-        "subject": subject,
-        "textContent": testo
+        "to": destinatari,
+        "subject": oggetto,
+        "textContent": messaggio
     }
 
     try:
         risposta = requests.post(
-            BREVO_API_URL,
+            BREVO_URL,
             headers={
-                "accept": "application/json",
-                "api-key": BREVO_API_KEY,
-                "content-type": "application/json"
+                "api-key": api_key,
+                "Content-Type": "application/json"
             },
             json=payload,
             timeout=30
         )
 
-        if risposta.status_code in (200, 201, 202):
-            print("EMAIL DI ALERT INVIATA.")
-            return True
+        risposta.raise_for_status()
 
-        print(
-            f"ERRORE BREVO: HTTP {risposta.status_code} - "
-            f"{risposta.text}"
-        )
-        return False
+        print("Email inviata correttamente.")
+        return True
 
     except requests.RequestException as errore:
-        print(f"ERRORE durante l'invio dell'email: {errore}")
+        print(f"ERRORE invio email: {errore}")
         return False
+
+
+def email_sotto_soglia(prodotto, prezzo, ulteriore=False):
+    soglia = Decimal(str(prodotto["soglia"]))
+
+    if ulteriore:
+        oggetto = (
+            f"📉 Nuovo ribasso: {prodotto['nome']} "
+            f"a {euro(prezzo)}"
+        )
+
+        apertura = (
+            "Il prodotto è sceso ulteriormente di prezzo "
+            "mentre si trova sotto la soglia impostata."
+        )
+    else:
+        oggetto = (
+            f"🔔 Prezzo sotto soglia: {prodotto['nome']} "
+            f"a {euro(prezzo)}"
+        )
+
+        apertura = (
+            "Il prezzo del prodotto è sceso sotto "
+            "la soglia impostata."
+        )
+
+    messaggio = f"""PRICE MONITOR
+
+{apertura}
+
+Prodotto:
+{prodotto['nome']}
+
+Prezzo Farmasave:
+{euro(prezzo)}
+
+Soglia:
+{euro(soglia)}
+
+Pagina Farmasave:
+{prodotto['url']}
+"""
+
+    return invia_email(
+        prodotto,
+        oggetto,
+        messaggio
+    )
+
+
+def email_ritorno_sopra_soglia(prodotto, prezzo):
+    soglia = Decimal(str(prodotto["soglia"]))
+
+    oggetto = (
+        f"↗️ Prezzo tornato sopra soglia: "
+        f"{prodotto['nome']}"
+    )
+
+    messaggio = f"""PRICE MONITOR
+
+Il prezzo del prodotto non è più sotto la soglia impostata.
+
+Prodotto:
+{prodotto['nome']}
+
+Prezzo Farmasave:
+{euro(prezzo)}
+
+Soglia:
+{euro(soglia)}
+
+Non riceverai altre notifiche di questo tipo finché
+il prodotto non scenderà nuovamente sotto soglia.
+
+Pagina Farmasave:
+{prodotto['url']}
+"""
+
+    return invia_email(
+        prodotto,
+        oggetto,
+        messaggio
+    )
+
+
+def email_errore(prodotto):
+    oggetto = (
+        f"⚠️ Price Monitor: problema con "
+        f"{prodotto['nome']}"
+    )
+
+    messaggio = f"""PRICE MONITOR
+
+Non è stato possibile controllare correttamente
+questo prodotto per {MAX_ERRORI_CONSECUTIVI}
+esecuzioni consecutive.
+
+Prodotto:
+{prodotto['nome']}
+
+Pagina Farmasave:
+{prodotto['url']}
+
+Il monitor continuerà automaticamente a tentare
+i controlli successivi.
+
+Non verranno inviati altri avvisi di errore finché
+il controllo non tornerà a funzionare.
+"""
+
+    return invia_email(
+        prodotto,
+        oggetto,
+        messaggio
+    )
+
+
+def nuovo_stato(soglia):
+    return {
+        "stato": None,
+        "ultimo_prezzo": None,
+        "minimo_notificato": None,
+        "soglia": float(soglia),
+        "errori_consecutivi": 0,
+        "errore_notificato": False
+    }
+
+
+def registra_errore(prodotto, stato_prodotto):
+    stato_prodotto["errori_consecutivi"] += 1
+
+    print(
+        "Errori consecutivi:",
+        stato_prodotto["errori_consecutivi"]
+    )
+
+    if (
+        stato_prodotto["errori_consecutivi"]
+        >= MAX_ERRORI_CONSECUTIVI
+        and not stato_prodotto["errore_notificato"]
+    ):
+        if email_errore(prodotto):
+            stato_prodotto["errore_notificato"] = True
+
+
+def processa_prodotto(prodotto, pagina, stato_prodotto):
+    soglia = Decimal(str(prodotto["soglia"]))
+
+    testo = pagina.get("text", "")
+
+    prezzo = estrai_prezzo_farmasave(testo)
+
+    if prezzo is None:
+        print("ERRORE: Prezzo Farmasave non individuato.")
+        registra_errore(prodotto, stato_prodotto)
+        return
+
+    titolo = pagina.get("title", "")
+
+    print(f"Titolo pagina: {titolo}")
+    print(f"Prezzo Farmasave: {euro(prezzo)}")
+    print(f"Soglia: {euro(soglia)}")
+
+    # Il controllo è tornato a funzionare.
+    stato_prodotto["errori_consecutivi"] = 0
+    stato_prodotto["errore_notificato"] = False
+
+    soglia_precedente = Decimal(
+        str(stato_prodotto.get("soglia", soglia))
+    )
+
+    # Se l'utente ha modificato la soglia, riallineiamo
+    # lo stato senza generare notifiche artificiali.
+    if soglia != soglia_precedente:
+        print(
+            f"Soglia modificata: "
+            f"{euro(soglia_precedente)} -> {euro(soglia)}"
+        )
+
+        stato_prodotto["soglia"] = float(soglia)
+        stato_prodotto["ultimo_prezzo"] = float(prezzo)
+
+        if prezzo < soglia:
+            stato_prodotto["stato"] = "sotto"
+            stato_prodotto["minimo_notificato"] = float(prezzo)
+        else:
+            stato_prodotto["stato"] = "sopra"
+            stato_prodotto["minimo_notificato"] = None
+
+        print(
+            "Stato riallineato alla nuova soglia. "
+            "Nessuna email inviata."
+        )
+        return
+
+    stato_precedente = stato_prodotto.get("stato")
+
+    # Prima esecuzione del prodotto.
+    # Registriamo la situazione senza inviare email.
+    if stato_precedente is None:
+        if prezzo < soglia:
+            stato_prodotto["stato"] = "sotto"
+            stato_prodotto["minimo_notificato"] = float(prezzo)
+        else:
+            stato_prodotto["stato"] = "sopra"
+            stato_prodotto["minimo_notificato"] = None
+
+        stato_prodotto["ultimo_prezzo"] = float(prezzo)
+        stato_prodotto["soglia"] = float(soglia)
+
+        print(
+            "Prima rilevazione: stato inizializzato. "
+            "Nessuna email inviata."
+        )
+        return
+
+    if prezzo < soglia:
+
+        if stato_precedente == "sopra":
+            if email_sotto_soglia(
+                prodotto,
+                prezzo,
+                ulteriore=False
+            ):
+                stato_prodotto["stato"] = "sotto"
+                stato_prodotto["minimo_notificato"] = float(prezzo)
+
+        else:
+            minimo = stato_prodotto.get("minimo_notificato")
+
+            if (
+                minimo is not None
+                and prezzo < Decimal(str(minimo))
+            ):
+                if email_sotto_soglia(
+                    prodotto,
+                    prezzo,
+                    ulteriore=True
+                ):
+                    stato_prodotto["minimo_notificato"] = float(prezzo)
+
+    else:
+
+        if stato_precedente == "sotto":
+            if email_ritorno_sopra_soglia(
+                prodotto,
+                prezzo
+            ):
+                stato_prodotto["stato"] = "sopra"
+                stato_prodotto["minimo_notificato"] = None
+
+        else:
+            stato_prodotto["stato"] = "sopra"
+
+    stato_prodotto["ultimo_prezzo"] = float(prezzo)
+    stato_prodotto["soglia"] = float(soglia)
 
 
 def main():
+    print("=" * 70)
+    print("PRICE MONITOR FARMASAVE")
+    print("=" * 70)
 
-    prodotti = carica_prodotti()
+    prodotti = carica_json(FILE_PRODOTTI)
 
-    print("======================================")
-    print("        PRICE MONITOR")
-    print("======================================")
-    print(f"Prodotti da controllare: {len(prodotti)}")
+    if not prodotti:
+        print("ERRORE: nessun prodotto configurato.")
+        sys.exit(1)
 
-    with sync_playwright() as playwright:
+    # Controllo ID duplicati
+    ids = [p.get("id") for p in prodotti]
 
-        browser = playwright.chromium.launch(
-            headless=True
+    if None in ids or len(ids) != len(set(ids)):
+        print(
+            "ERRORE: ogni prodotto deve avere "
+            "un ID univoco."
         )
+        sys.exit(1)
 
-        context = browser.new_context(
-    locale="it-IT"
-    )
+    stato = carica_json(FILE_STATO, default={})
 
-        page = context.new_page()
+    # Elimina automaticamente dallo stato i prodotti
+    # che non esistono più in prodotti.json.
+    ids_attivi = set(ids)
+
+    for id_vecchio in list(stato.keys()):
+        if id_vecchio not in ids_attivi:
+            print(
+                f"Rimuovo dallo stato prodotto non più "
+                f"configurato: {id_vecchio}"
+            )
+            del stato[id_vecchio]
+
+    # Crea automaticamente lo stato dei nuovi prodotti.
+    for prodotto in prodotti:
+        prodotto_id = prodotto["id"]
+
+        if prodotto_id not in stato:
+            stato[prodotto_id] = nuovo_stato(
+                prodotto["soglia"]
+            )
+
+    try:
+        pagine, errori = recupera_pagine_tinyfish(prodotti)
+
+    except Exception as errore:
+        print(f"ERRORE TinyFish generale: {errore}")
 
         for prodotto in prodotti:
+            registra_errore(
+                prodotto,
+                stato[prodotto["id"]]
+            )
 
-            try:
-                soglia = Decimal(str(prodotto["soglia"]))
-            except (KeyError, InvalidOperation):
+        salva_stato(stato)
+        sys.exit(1)
+
+    for prodotto in prodotti:
+        print("\n" + "-" * 70)
+        print(f"Controllo: {prodotto['nome']}")
+        print(f"ID: {prodotto['id']}")
+        print(f"URL: {prodotto['url']}")
+
+        stato_prodotto = stato[prodotto["id"]]
+
+        pagina = pagine.get(prodotto["url"])
+
+        if pagina is None:
+            print("ERRORE: TinyFish non ha restituito la pagina.")
+
+            if prodotto["url"] in errori:
                 print(
-                    f"\nERRORE: soglia non valida per "
-                    f"{prodotto.get('nome', 'prodotto sconosciuto')}."
-                )
-                continue
-
-            prezzo = rileva_prezzo(page, prodotto)
-
-            if prezzo is None:
-                print("Controllo non concluso: nessun alert inviato.")
-                continue
-
-            print(f"Soglia: {soglia:.2f} €")
-
-            if prezzo < soglia:
-
-                print("PREZZO SOTTO SOGLIA!")
-
-                destinatari = recupera_destinatari(prodotto)
-
-                invia_alert(
-                    prodotto,
-                    prezzo,
-                    destinatari
+                    "Dettaglio TinyFish:",
+                    errori[prodotto["url"]]
                 )
 
-            else:
-                print("Prezzo non inferiore alla soglia.")
+            registra_errore(
+                prodotto,
+                stato_prodotto
+            )
+            continue
 
-        context.close()
-        browser.close()
+        processa_prodotto(
+            prodotto,
+            pagina,
+            stato_prodotto
+        )
 
-    print("\n======================================")
-    print("Controllo terminato.")
-    print("======================================")
+    salva_stato(stato)
+
+    print("\n" + "=" * 70)
+    print("CONTROLLO TERMINATO")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
