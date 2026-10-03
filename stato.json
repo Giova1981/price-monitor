@@ -43,8 +43,7 @@
     "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": [
-      "EMAIL_MANDARINO",
-      "EMAIL_ME"
+      "EMAIL_MANDARINO"
     ]
   }
 }
