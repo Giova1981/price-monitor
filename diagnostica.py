@@ -1,184 +1,86 @@
 import requests
-from urllib.parse import quote
+import re
 
-BASE_URL = "https://www.farmasave.it"
-
-PRODOTTI = [
+URLS = [
     {
-        "nome": "Sun Secure Eau Solaire SPF50",
-        "url": f"{BASE_URL}/sun-secure-eau-solaire-spf50.html",
-        "ricerca": "Sun Secure Eau Solaire SPF50"
+        "nome": "Sun Secure Eau Solaire SPF50+ 200 ml",
+        "url": "https://www.trovaprezzi.it/prezzo_prodotti-solari_sun_secure_eau_solaire_spf50%242b_svr_200ml.aspx"
     },
     {
         "nome": "Supradyn Ricarica 60 compresse",
-        "url": f"{BASE_URL}/supradyn-ricarica-integratore-di-vitamine-e-sali-minerali-60-compresse-rivestite.html",
-        "ricerca": "Supradyn Ricarica 60 compresse"
+        "url": "https://www.trovaprezzi.it/prezzo_integratori-coadiuvanti_supradyn_ricarica_integratore_multivitaminico_compresse_60.aspx"
     },
     {
         "nome": "Citoethyl 3 flaconi 15 ml",
-        "url": f"{BASE_URL}/citoethyl-3fl-15ml.html",
-        "ricerca": "Citoethyl"
+        "url": "https://www.trovaprezzi.it/prezzo_integratori-coadiuvanti_3_citozeatec_citoethyl_15ml.aspx"
     }
 ]
 
 HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/json",
-    "Accept-Language": "it-IT,it;q=0.9,en;q=0.8"
+    "User-Agent": "Mozilla/5.0",
+    "Accept-Language": "it-IT,it;q=0.9"
 }
 
 
-def test_get(nome, url):
+for prodotto in URLS:
+
     print("\n" + "=" * 70)
-    print(f"TEST: {nome}")
-    print(f"URL:  {url}")
+    print(prodotto["nome"])
     print("=" * 70)
 
     try:
-        r = requests.get(
-            url,
+
+        risposta = requests.get(
+            prodotto["url"],
             headers=HEADERS,
-            timeout=20,
-            allow_redirects=True
+            timeout=30
         )
 
-        print(f"HTTP status : {r.status_code}")
-        print(f"Content-Type: {r.headers.get('content-type')}")
-        print(f"URL finale  : {r.url}")
-        print(f"Dimensione  : {len(r.content)} byte")
+        print("HTTP status:", risposta.status_code)
+        print("Dimensione:", len(risposta.content), "byte")
 
-        testo = r.text.lower()
+        html = risposta.text
 
-        indicatori = {
-            "anti-bot": [
-                "verify that you're not a robot",
-                "verifying you are human",
-                "checking your browser",
-                "captcha"
-            ],
-            "JSON-LD": [
-                'application/ld+json'
-            ],
-            "schema prezzo": [
-                'itemprop="price"',
-                '"price"',
-                '"lowprice"',
-                '"highprice"'
+        print(
+            "Farmasave presente:",
+            "SI" if "Farmasave" in html else "NO"
+        )
+
+        prezzi = re.findall(
+            r"\d{1,3}[,.]\d{2}\s*€",
+            html
+        )
+
+        print("Prezzi trovati:", prezzi[:20])
+
+        posizione = html.lower().find("farmasave")
+
+        if posizione != -1:
+
+            estratto = html[
+                max(0, posizione - 1000):
+                posizione + 3000
             ]
-        }
 
-        for categoria, valori in indicatori.items():
-            trovato = any(x in testo for x in valori)
-            print(
-                f"{categoria:<15}: "
-                f"{'SI' if trovato else 'NO'}"
+            estratto = re.sub(
+                r"\s+",
+                " ",
+                estratto
             )
 
-        anteprima = " ".join(r.text[:500].split())
+            print("\n--- ESTRATTO FARMASAVE ---")
+            print(estratto[:4000])
 
-        print("\nAnteprima risposta:")
-        print(anteprima)
+        else:
 
-    except requests.RequestException as e:
-        print(f"ERRORE REQUEST: {e}")
-
-
-def test_graphql():
-    print("\n" + "=" * 70)
-    print("TEST GRAPHQL")
-    print("=" * 70)
-
-    url = f"{BASE_URL}/graphql"
-
-    query = """
-    {
-      products(
-        search: "Citoethyl"
-        pageSize: 5
-      ) {
-        total_count
-        items {
-          name
-          sku
-          price_range {
-            minimum_price {
-              final_price {
-                value
-                currency
-              }
-            }
-          }
-        }
-      }
-    }
-    """
-
-    try:
-        r = requests.post(
-            url,
-            headers={
-                **HEADERS,
-                "Content-Type": "application/json"
-            },
-            json={"query": query},
-            timeout=20
-        )
-
-        print(f"HTTP status : {r.status_code}")
-        print(f"Content-Type: {r.headers.get('content-type')}")
-        print(f"Dimensione  : {len(r.content)} byte")
-
-        try:
-            dati = r.json()
-
-            print("\nRisposta JSON:")
-            print(dati)
-
-        except ValueError:
-            print("\nLa risposta NON è JSON.")
             print(
-                "Anteprima:",
-                " ".join(r.text[:700].split())
+                "\nATTENZIONE: Farmasave non trovato "
+                "nel contenuto della pagina."
             )
 
-    except requests.RequestException as e:
-        print(f"ERRORE GRAPHQL: {e}")
+    except requests.RequestException as errore:
+
+        print("ERRORE:", errore)
 
 
-def main():
-
-    print("=" * 70)
-    print("       DIAGNOSTICA FARMASAVE")
-    print("=" * 70)
-
-    # 1. Homepage
-    test_get(
-        "Homepage",
-        BASE_URL
-    )
-
-    # 2. Schede prodotto
-    for prodotto in PRODOTTI:
-        test_get(
-            f"PRODOTTO - {prodotto['nome']}",
-            prodotto["url"]
-        )
-
-    # 3. Ricerca interna Farmasave
-    for prodotto in PRODOTTI:
-        ricerca = quote(prodotto["ricerca"])
-
-        test_get(
-            f"RICERCA - {prodotto['nome']}",
-            f"{BASE_URL}/catalogsearch/result/?q={ricerca}"
-        )
-
-    # 4. Endpoint Magento GraphQL
-    test_graphql()
-
-    print("\n" + "=" * 70)
-    print("DIAGNOSTICA TERMINATA")
-    print("=" * 70)
-
-
-if __name__ == "__main__":
-    main()
+print("\nDiagnostica completata.")
