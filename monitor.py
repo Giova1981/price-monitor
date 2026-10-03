@@ -51,6 +51,139 @@ def salva_stato(stato):
 
 
 # ============================================================
+# VALIDAZIONE PRODOTTI
+# ============================================================
+
+def valida_prodotti(prodotti):
+
+    if not isinstance(prodotti, list) or not prodotti:
+        print("ERRORE: prodotti.json non contiene prodotti validi.")
+        return False
+
+    campi_obbligatori = {
+        "id",
+        "nome",
+        "url",
+        "soglia",
+        "destinatari"
+    }
+
+    ids = set()
+    valido = True
+
+    for indice, prodotto in enumerate(prodotti, start=1):
+
+        if not isinstance(prodotto, dict):
+            print(
+                f"ERRORE: prodotto numero {indice} "
+                "non è un oggetto JSON valido."
+            )
+            valido = False
+            continue
+
+        mancanti = campi_obbligatori - set(prodotto.keys())
+
+        if mancanti:
+            print(
+                f"ERRORE: prodotto numero {indice}: "
+                "campi mancanti: "
+                + ", ".join(sorted(mancanti))
+            )
+            valido = False
+            continue
+
+        prodotto_id = prodotto["id"]
+
+        if not isinstance(prodotto_id, str) or not prodotto_id.strip():
+            print(
+                f"ERRORE: prodotto numero {indice}: "
+                "ID non valido."
+            )
+            valido = False
+
+        elif prodotto_id in ids:
+            print(
+                f"ERRORE: ID duplicato: {prodotto_id}"
+            )
+            valido = False
+
+        else:
+            ids.add(prodotto_id)
+
+        if (
+            not isinstance(prodotto["nome"], str)
+            or not prodotto["nome"].strip()
+        ):
+            print(
+                f"ERRORE: prodotto {prodotto_id}: "
+                "nome non valido."
+            )
+            valido = False
+
+        if (
+            not isinstance(prodotto["url"], str)
+            or not prodotto["url"].startswith(
+                ("http://", "https://")
+            )
+        ):
+            print(
+                f"ERRORE: prodotto {prodotto_id}: "
+                "URL non valido."
+            )
+            valido = False
+
+        try:
+            soglia = Decimal(str(prodotto["soglia"]))
+
+            if soglia <= 0:
+                raise InvalidOperation
+
+        except (InvalidOperation, ValueError, TypeError):
+            print(
+                f"ERRORE: prodotto {prodotto_id}: "
+                "soglia non valida."
+            )
+            valido = False
+
+        destinatari = prodotto["destinatari"]
+
+        if (
+            not isinstance(destinatari, list)
+            or not destinatari
+        ):
+            print(
+                f"ERRORE: prodotto {prodotto_id}: "
+                "deve essere configurato almeno "
+                "un destinatario."
+            )
+            valido = False
+
+        elif (
+            len(destinatari)
+            != len(set(destinatari))
+        ):
+            print(
+                f"ERRORE: prodotto {prodotto_id}: "
+                "sono presenti destinatari duplicati."
+            )
+            valido = False
+
+        else:
+            for destinatario in destinatari:
+                if (
+                    not isinstance(destinatario, str)
+                    or not destinatario.strip()
+                ):
+                    print(
+                        f"ERRORE: prodotto {prodotto_id}: "
+                        "destinatario non valido."
+                    )
+                    valido = False
+
+    return valido
+
+
+# ============================================================
 # PREZZI
 # ============================================================
 
@@ -151,13 +284,10 @@ def recupera_pagine_tinyfish(prodotti):
 # DESTINATARI
 # ============================================================
 
-def recupera_destinatari(prodotto, nomi_destinatari=None):
-    """
-    Converte i nomi simbolici presenti in prodotti.json
-    (es. EMAIL_MANDARINO) nei relativi indirizzi email
-    disponibili come variabili d'ambiente.
-    """
-
+def recupera_destinatari(
+    prodotto,
+    nomi_destinatari=None
+):
     if nomi_destinatari is None:
         nomi_destinatari = prodotto.get(
             "destinatari",
@@ -176,9 +306,9 @@ def recupera_destinatari(prodotto, nomi_destinatari=None):
 
         else:
             print(
-                f"ATTENZIONE: variabile destinatario "
+                "ATTENZIONE: variabile destinatario "
                 f"{nome_secret} non disponibile "
-                f"nell'ambiente."
+                "nell'ambiente."
             )
 
     return destinatari
@@ -210,7 +340,7 @@ def invia_email(
 
     if not destinatari:
         print(
-            f"ERRORE: nessun destinatario disponibile "
+            "ERRORE: nessun destinatario disponibile "
             f"per {prodotto['nome']}."
         )
         return False
@@ -243,7 +373,10 @@ def invia_email(
             + ", ".join(
                 nomi_destinatari
                 if nomi_destinatari is not None
-                else prodotto.get("destinatari", [])
+                else prodotto.get(
+                    "destinatari",
+                    []
+                )
             )
         )
 
@@ -253,7 +386,6 @@ def invia_email(
         print(
             f"ERRORE invio email: {errore}"
         )
-
         return False
 
 
@@ -273,7 +405,7 @@ def email_sotto_soglia(
 
     if ulteriore:
         oggetto = (
-            f"📉 Nuovo ribasso: "
+            "📉 Nuovo ribasso: "
             f"{prodotto['nome']} "
             f"a {euro(prezzo)}"
         )
@@ -286,7 +418,7 @@ def email_sotto_soglia(
 
     else:
         oggetto = (
-            f"🔔 Prezzo sotto soglia: "
+            "🔔 Prezzo sotto soglia: "
             f"{prodotto['nome']} "
             f"a {euro(prezzo)}"
         )
@@ -334,7 +466,7 @@ def email_ritorno_sopra_soglia(
     )
 
     oggetto = (
-        f"↗️ Prezzo tornato sopra soglia: "
+        "↗️ Prezzo tornato sopra soglia: "
         f"{prodotto['nome']}"
     )
 
@@ -373,7 +505,7 @@ Pagina Farmasave:
 
 def email_errore(prodotto):
     oggetto = (
-        f"⚠️ Price Monitor: problema con "
+        "⚠️ Price Monitor: problema con "
         f"{prodotto['nome']}"
     )
 
@@ -424,7 +556,7 @@ def aggiorna_struttura_stato(
     stato_prodotto
 ):
     """
-    Migra automaticamente gli stati creati
+    Migra automaticamente eventuali stati creati
     dalle versioni precedenti del monitor.
     """
 
@@ -436,9 +568,6 @@ def aggiorna_struttura_stato(
                 "minimo_notificato"
             ) is not None
         ):
-            # Nella vecchia versione uno stato "sotto"
-            # con minimo_notificato significava che
-            # l'alert era già stato inviato.
             stato_prodotto[
                 "destinatari_notificati"
             ] = list(
@@ -554,6 +683,7 @@ def processa_prodotto(
         f"Soglia: {euro(soglia)}"
     )
 
+    # Il controllo è tornato a funzionare.
     stato_prodotto[
         "errori_consecutivi"
     ] = 0
@@ -601,8 +731,8 @@ def processa_prodotto(
                 "minimo_notificato"
             ] = float(prezzo)
 
-            # La modifica manuale della soglia non genera
-            # una notifica artificiale.
+            # Una modifica manuale della soglia
+            # non genera un alert artificiale.
             stato_prodotto[
                 "destinatari_notificati"
             ] = list(
@@ -676,7 +806,8 @@ def processa_prodotto(
                 )
 
             else:
-
+                # Lasciamo lo stato non inizializzato,
+                # così il monitor ritenterà al prossimo giro.
                 stato_prodotto[
                     "stato"
                 ] = None
@@ -764,7 +895,6 @@ def processa_prodotto(
                 )
             )
 
-            # Troviamo eventuali nuovi destinatari.
             nuovi_destinatari = [
                 destinatario
                 for destinatario
@@ -772,42 +902,6 @@ def processa_prodotto(
                 if destinatario
                 not in destinatari_notificati
             ]
-
-            # ------------------------------------------------
-            # NUOVI DESTINATARI
-            # ------------------------------------------------
-
-            if nuovi_destinatari:
-
-                print(
-                    "Nuovi destinatari rilevati: "
-                    + ", ".join(
-                        nuovi_destinatari
-                    )
-                )
-
-                print(
-                    "Invio lo stato corrente "
-                    "solo ai nuovi destinatari."
-                )
-
-                if email_sotto_soglia(
-                    prodotto,
-                    prezzo,
-                    ulteriore=False,
-                    nomi_destinatari=nuovi_destinatari
-                ):
-                    for destinatario in nuovi_destinatari:
-                        if destinatario not in (
-                            stato_prodotto[
-                                "destinatari_notificati"
-                            ]
-                        ):
-                            stato_prodotto[
-                                "destinatari_notificati"
-                            ].append(
-                                destinatario
-                            )
 
             # ------------------------------------------------
             # NESSUN PREZZO PRECEDENTEMENTE NOTIFICATO
@@ -840,15 +934,18 @@ def processa_prodotto(
             # NUOVO RIBASSO
             # ------------------------------------------------
 
-            elif prezzo < Decimal(
-                str(minimo)
-            ):
+            elif prezzo < Decimal(str(minimo)):
 
                 print(
                     "Nuovo minimo rilevato "
                     "sotto soglia."
                 )
 
+                # In caso di nuovo minimo la mail viene
+                # inviata una sola volta a TUTTI gli attuali
+                # destinatari. In questo modo un eventuale
+                # nuovo destinatario non riceve due email
+                # nella stessa esecuzione.
                 if email_sotto_soglia(
                     prodotto,
                     prezzo,
@@ -859,22 +956,56 @@ def processa_prodotto(
                         "minimo_notificato"
                     ] = float(prezzo)
 
-                    # Tutti i destinatari attuali hanno
-                    # ricevuto il nuovo minimo.
                     stato_prodotto[
                         "destinatari_notificati"
                     ] = list(
                         destinatari_configurati
                     )
 
+            # ------------------------------------------------
+            # PREZZO NON DIMINUITO: EVENTUALI NUOVI DESTINATARI
+            # ------------------------------------------------
+
+            elif nuovi_destinatari:
+
+                print(
+                    "Nuovi destinatari rilevati: "
+                    + ", ".join(
+                        nuovi_destinatari
+                    )
+                )
+
+                print(
+                    "Invio lo stato corrente "
+                    "solo ai nuovi destinatari."
+                )
+
+                if email_sotto_soglia(
+                    prodotto,
+                    prezzo,
+                    ulteriore=False,
+                    nomi_destinatari=nuovi_destinatari
+                ):
+                    for destinatario in nuovi_destinatari:
+
+                        if destinatario not in (
+                            stato_prodotto[
+                                "destinatari_notificati"
+                            ]
+                        ):
+                            stato_prodotto[
+                                "destinatari_notificati"
+                            ].append(
+                                destinatario
+                            )
+
             else:
 
-                if not nuovi_destinatari:
-                    print(
-                        "Prodotto ancora sotto soglia, "
-                        "ma nessun nuovo minimo e nessun "
-                        "nuovo destinatario. Nessuna email."
-                    )
+                print(
+                    "Prodotto ancora sotto soglia, "
+                    "ma nessun nuovo minimo e nessun "
+                    "nuovo destinatario. Nessuna email."
+                )
 
     # ========================================================
     # PREZZO SOPRA SOGLIA
@@ -900,7 +1031,7 @@ def processa_prodotto(
                     "minimo_notificato"
                 ] = None
 
-                # Il ciclo sotto soglia è terminato.
+                # Termina il ciclo sotto soglia.
                 stato_prodotto[
                     "destinatari_notificati"
                 ] = []
@@ -939,24 +1070,10 @@ def main():
         FILE_PRODOTTI
     )
 
-    if not prodotti:
+    if not valida_prodotti(prodotti):
         print(
-            "ERRORE: nessun prodotto configurato."
-        )
-        sys.exit(1)
-
-    ids = [
-        prodotto.get("id")
-        for prodotto in prodotti
-    ]
-
-    if (
-        None in ids
-        or len(ids) != len(set(ids))
-    ):
-        print(
-            "ERRORE: ogni prodotto deve avere "
-            "un ID univoco."
+            "\nERRORE: configurazione prodotti non valida. "
+            "Controllo interrotto."
         )
         sys.exit(1)
 
@@ -965,15 +1082,26 @@ def main():
         default={}
     )
 
+    if not isinstance(stato, dict):
+        print(
+            "ERRORE: stato.json non contiene "
+            "una struttura valida."
+        )
+        sys.exit(1)
+
+    ids = [
+        prodotto["id"]
+        for prodotto in prodotti
+    ]
+
     # --------------------------------------------------------
     # ELIMINA PRODOTTI RIMOSSI
     # --------------------------------------------------------
 
     ids_attivi = set(ids)
 
-    for id_vecchio in list(
-        stato.keys()
-    ):
+    for id_vecchio in list(stato.keys()):
+
         if id_vecchio not in ids_attivi:
 
             print(
@@ -1007,7 +1135,6 @@ def main():
 
         else:
 
-            # Migrazione automatica dello stato precedente.
             aggiorna_struttura_stato(
                 prodotto,
                 stato[prodotto_id]
@@ -1056,8 +1183,7 @@ def main():
         )
 
         print(
-            f"Controllo: "
-            f"{prodotto['nome']}"
+            f"Controllo: {prodotto['nome']}"
         )
 
         print(
