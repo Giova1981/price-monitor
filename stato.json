@@ -32,9 +32,9 @@
     "errore_notificato": false
   },
   "topialyse-gel-lavant-1l": {
-    "stato": null,
+    "stato": "sotto",
     "ultimo_prezzo": 8.27,
-    "minimo_notificato": null,
+    "minimo_notificato": 8.27,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false
