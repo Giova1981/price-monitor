@@ -77,6 +77,7 @@ jobs:
           # Destinatari
           EMAIL_MANDARINO: ${{ secrets.EMAIL_MANDARINO }}
           EMAIL_ME: ${{ secrets.EMAIL_ME }}
+          EMAIL_LEO: ${{ secrets.EMAIL_LEO }}
 
         run: python monitor.py
 
