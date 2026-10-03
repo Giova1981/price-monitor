@@ -7,9 +7,9 @@
     "destinatari": ["EMAIL_MANDARINO"]
   },
   {
-    "id": "SVR Sun Secure Eau Solaire SPF30",
+    "id": "sun-secure-spf30",
     "nome": "SVR Sun Secure Eau Solaire SPF30 - Acqua Solare Bi-Fasica Corpo 200 ml",
-    "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf30.html?_gl=1*w9g17l*_up*MQ..*_gs*MQ..&gclid=Cj0KCQjwz4LWBhCMARIsAFEG5Mo5Zo-bq90I2joygTIMoMp2YNpIWifrmli_kXd0UFkXZNqYpS7x59AaAoC_EALw_wcB&gbraid=0AAAAAC5yU0wgipT_OBnQHEJ2DilLMT8vv",
+    "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf30.html",
     "soglia": 12.00,
     "destinatari": ["EMAIL_MANDARINO"]
   },
@@ -28,9 +28,9 @@
     "destinatari": ["EMAIL_ME"]
   },
   {
-    "id": "SVR Topialyse Gel Lavant - Detergente Delicato Per Pelle Molto Secca E Atopica 1000 ml",
+    "id": "topialyse-gel-lavant-1l",
     "nome": "SVR Topialyse Gel Lavant - Detergente Delicato Per Pelle Molto Secca E Atopica 1000 ml",
-    "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html?_gl=1*1ljhwhm*_up*MQ..*_gs*MQ..&gclid=Cj0KCQjwz4LWBhCMARIsAFEG5Mo5Zo-bq90I2joygTIMoMp2YNpIWifrmli_kXd0UFkXZNqYpS7x59AaAoC_EALw_wcB&gbraid=0AAAAAC5yU0wgipT_OBnQHEJ2DilLMT8vv",
+    "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html",
     "soglia": 10.00,
     "destinatari": ["EMAIL_MANDARINO"]
   }
