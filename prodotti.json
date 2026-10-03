@@ -2,16 +2,19 @@
   {
     "nome": "Sun Secure Eau Solaire SPF50",
     "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf50.html",
-    "soglia": 12.00
+    "soglia": 12.00,
+    "destinatari": ["EMAIL_MANDARINO"]
   },
   {
     "nome": "Supradyn Ricarica 60 compresse",
     "url": "https://www.farmasave.it/supradyn-ricarica-integratore-di-vitamine-e-sali-minerali-60-compresse-rivestite.html",
-    "soglia": 15.00
+    "soglia": 15.00,
+    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
   },
   {
     "nome": "Citoethyl 3 flaconi 15 ml",
     "url": "https://www.farmasave.it/citoethyl-3fl-15ml.html",
-    "soglia": 14.00
+    "soglia": 14.00,
+    "destinatari": ["EMAIL_ME"]
   }
 ]
