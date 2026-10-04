@@ -40,5 +40,12 @@
     "url": "https://farmavola.it/svr-sun-secure-eau-solaire-spf50-acqua-solare",
     "soglia": 12.00,
     "destinatari": ["EMAIL_MANDARINO"]
+  },
+  {
+    "id": "supradyn-ricarica-60-redcare",
+    "nome": "Supradyn Ricarica 60 compresse - Redcare",
+    "url": "https://www.redcare.it/integratori/IT935662611/supradyn-ricarica-integratore-multivitaminico-e-minerali-compresse.htm",
+    "soglia": 15.00,
+    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
   }
 ]
