@@ -6,10 +6,7 @@ on:
   workflow_dispatch:
 
   # Controlli automatici giornalieri.
-  schedule:
-    - cron: "*/5 * * * *"
-      timezone: "Europe/Rome"
-
+ 
 
 # Necessario per permettere al workflow di aggiornare
 # automaticamente stato.json nel repository.
