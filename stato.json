@@ -47,5 +47,14 @@
       "EMAIL_ME",
       "EMAIL_LEO"
     ]
+  },
+  "sun-secure-spf50-farmavola": {
+    "stato": null,
+    "ultimo_prezzo": null,
+    "minimo_notificato": null,
+    "soglia": 12.0,
+    "destinatari_notificati": [],
+    "errori_consecutivi": 1,
+    "errore_notificato": false
   }
 }
