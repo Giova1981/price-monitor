@@ -10,7 +10,7 @@
   },
   "supradyn-ricarica-60": {
     "stato": "sopra",
-    "ultimo_prezzo": 15.61,
+    "ultimo_prezzo": 15.86,
     "minimo_notificato": null,
     "soglia": 15.0,
     "errori_consecutivi": 0,
@@ -37,7 +37,7 @@
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sotto",
-    "ultimo_prezzo": 8.26,
+    "ultimo_prezzo": 8.27,
     "minimo_notificato": 8.26,
     "soglia": 10.0,
     "errori_consecutivi": 0,
@@ -49,12 +49,14 @@
     ]
   },
   "sun-secure-spf50-farmavola": {
-    "stato": null,
-    "ultimo_prezzo": null,
-    "minimo_notificato": null,
+    "stato": "sotto",
+    "ultimo_prezzo": 8.05,
+    "minimo_notificato": 8.05,
     "soglia": 12.0,
-    "destinatari_notificati": [],
-    "errori_consecutivi": 1,
+    "destinatari_notificati": [
+      "EMAIL_MANDARINO"
+    ],
+    "errori_consecutivi": 0,
     "errore_notificato": false
   }
 }
