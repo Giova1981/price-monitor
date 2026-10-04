@@ -58,5 +58,17 @@
     ],
     "errori_consecutivi": 0,
     "errore_notificato": false
+  },
+  "supradyn-ricarica-60-redcare": {
+    "stato": "sotto",
+    "ultimo_prezzo": 0.33,
+    "minimo_notificato": 0.33,
+    "soglia": 15.0,
+    "destinatari_notificati": [
+      "EMAIL_MANDARINO",
+      "EMAIL_ME"
+    ],
+    "errori_consecutivi": 0,
+    "errore_notificato": false
   }
 }
