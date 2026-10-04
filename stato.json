@@ -10,7 +10,7 @@
   },
   "supradyn-ricarica-60": {
     "stato": "sopra",
-    "ultimo_prezzo": 15.86,
+    "ultimo_prezzo": 15.61,
     "minimo_notificato": null,
     "soglia": 15.0,
     "errori_consecutivi": 0,
@@ -37,8 +37,8 @@
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sotto",
-    "ultimo_prezzo": 8.27,
-    "minimo_notificato": 8.27,
+    "ultimo_prezzo": 8.26,
+    "minimo_notificato": 8.26,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
