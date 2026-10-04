@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -195,34 +196,201 @@ def euro(valore):
     )
 
 
+def normalizza_prezzo(valore):
+    """Converte i principali formati di prezzo europei/internazionali in Decimal."""
+    if valore is None:
+        return None
+
+    testo = str(valore).strip()
+    testo = re.sub(r"[^0-9,.' ]", "", testo).replace(" ", "").replace("'", "")
+
+    if not testo:
+        return None
+
+    # 1.234,56 -> 1234.56
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+,\d{2}", testo):
+        testo = testo.replace(".", "").replace(",", ".")
+    # 1,234.56 -> 1234.56
+    elif re.fullmatch(r"\d{1,3}(?:,\d{3})+\.\d{2}", testo):
+        testo = testo.replace(",", "")
+    # 12,34 -> 12.34
+    elif re.fullmatch(r"\d+,\d{2}", testo):
+        testo = testo.replace(",", ".")
+    # 12.34 oppure 1234.56
+    elif re.fullmatch(r"\d+\.\d{2}", testo):
+        pass
+    # Prezzo intero: accettato solo se esplicitamente associato a una valuta/etichetta.
+    elif re.fullmatch(r"\d+", testo):
+        pass
+    else:
+        return None
+
+    try:
+        prezzo = Decimal(testo)
+        if prezzo <= 0:
+            return None
+        return prezzo
+    except InvalidOperation:
+        return None
+
+
 def estrai_prezzo_farmasave(testo):
+    """Estrattore specifico mantenuto per piena compatibilità con Farmasave."""
     pattern = (
         r"Prezzo\s+Farmasave"
         r"[\s*:#\-]*"
         r"(\d{1,4}[.,]\d{2})\s*€"
     )
 
-    match = re.search(
-        pattern,
-        testo,
-        flags=re.IGNORECASE
-    )
-
+    match = re.search(pattern, testo, flags=re.IGNORECASE)
     if not match:
         return None
 
-    valore = match.group(1).replace(",", ".")
+    return normalizza_prezzo(match.group(1))
 
-    try:
-        prezzo = Decimal(valore)
 
-        if prezzo <= 0:
-            return None
+def estrai_prezzo_json_ld(testo):
+    """Cerca price nei blocchi JSON-LD Product/Offer, quando TinyFish li conserva."""
+    blocchi = re.findall(
+        r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+        testo,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
 
-        return prezzo
+    def visita(oggetto):
+        if isinstance(oggetto, dict):
+            tipo = oggetto.get("@type")
+            tipi = tipo if isinstance(tipo, list) else [tipo]
 
-    except InvalidOperation:
+            if "Offer" in tipi or "AggregateOffer" in tipi:
+                for chiave in ("price", "lowPrice"):
+                    if chiave in oggetto:
+                        prezzo = normalizza_prezzo(oggetto.get(chiave))
+                        valuta = str(oggetto.get("priceCurrency", "EUR")).upper()
+                        if prezzo is not None and valuta in ("EUR", "€", ""):
+                            return prezzo
+
+            # Alcuni siti mettono offers dentro Product.
+            for valore in oggetto.values():
+                trovato = visita(valore)
+                if trovato is not None:
+                    return trovato
+
+        elif isinstance(oggetto, list):
+            for elemento in oggetto:
+                trovato = visita(elemento)
+                if trovato is not None:
+                    return trovato
+
         return None
+
+    for blocco in blocchi:
+        try:
+            dati = json.loads(html.unescape(blocco).strip())
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+        prezzo = visita(dati)
+        if prezzo is not None:
+            return prezzo
+
+    return None
+
+
+def estrai_prezzo_metadata(testo):
+    """Cerca metadati HTML comunemente usati dagli e-commerce."""
+    patterns = [
+        r'<meta[^>]+(?:property|name|itemprop)=["\'](?:product:price:amount|og:price:amount|price)["\'][^>]+content=["\']([^"\']+)["\']',
+        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name|itemprop)=["\'](?:product:price:amount|og:price:amount|price)["\']',
+    ]
+
+    for pattern in patterns:
+        for valore in re.findall(pattern, testo, flags=re.IGNORECASE):
+            prezzo = normalizza_prezzo(valore)
+            if prezzo is not None:
+                return prezzo
+
+    return None
+
+
+def testo_visibile_da_html(testo):
+    pulito = re.sub(r"<script\b[^>]*>.*?</script>", " ", testo, flags=re.IGNORECASE | re.DOTALL)
+    pulito = re.sub(r"<style\b[^>]*>.*?</style>", " ", pulito, flags=re.IGNORECASE | re.DOTALL)
+    pulito = re.sub(r"<[^>]+>", " ", pulito)
+    pulito = html.unescape(pulito)
+    pulito = re.sub(r"[ \t\r\f\v]+", " ", pulito)
+    pulito = re.sub(r"\n+", "\n", pulito)
+    return pulito
+
+
+def estrai_prezzo_testo(testo):
+    """
+    Fallback prudente sul testo visibile.
+    Accetta solo prezzi vicini a etichette chiaramente riferite al prezzo corrente.
+    """
+    visibile = testo_visibile_da_html(testo)
+
+    etichette = [
+        r"prezzo\s+(?:online|web|speciale|scontato|attuale|finale)",
+        r"prezzo",
+        r"nostro\s+prezzo",
+        r"our\s+price",
+        r"sale\s+price",
+        r"current\s+price",
+        r"special\s+price",
+        r"now",
+        r"ora",
+    ]
+
+    numero = r"(\d{1,3}(?:[. ]\d{3})*,\d{2}|\d{1,3}(?:[, ]\d{3})*\.\d{2}|\d+[.,]\d{2})"
+    valuta = r"(?:€|EUR)"
+
+    for etichetta in etichette:
+        patterns = [
+            rf"{etichetta}[^\n]{{0,80}}?{numero}\s*{valuta}",
+            rf"{etichetta}[^\n]{{0,80}}?{valuta}\s*{numero}",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, visibile, flags=re.IGNORECASE)
+            if match:
+                prezzo = normalizza_prezzo(match.group(1))
+                if prezzo is not None:
+                    return prezzo
+
+    return None
+
+
+def estrai_prezzo(prodotto, testo):
+    """
+    Estrazione multilivello. Restituisce (prezzo, metodo).
+    In caso di ambiguità restituisce (None, None) invece di inventare un prezzo.
+    """
+    dominio = prodotto.get("url", "").lower()
+
+    # Farmasave resta prioritario: è il comportamento già collaudato.
+    if "farmasave.it" in dominio:
+        prezzo = estrai_prezzo_farmasave(testo)
+        if prezzo is not None:
+            return prezzo, "farmasave"
+
+    strategie = [
+        ("json_ld", estrai_prezzo_json_ld),
+        ("metadata", estrai_prezzo_metadata),
+        ("testo_etichettato", estrai_prezzo_testo),
+    ]
+
+    for nome_metodo, funzione in strategie:
+        prezzo = funzione(testo)
+        if prezzo is not None:
+            return prezzo, nome_metodo
+
+    # Ultimo tentativo Farmasave, utile se il dominio cambia/redirecta.
+    prezzo = estrai_prezzo_farmasave(testo)
+    if prezzo is not None:
+        return prezzo, "farmasave"
+
+    return None, None
 
 
 # ============================================================
@@ -247,7 +415,7 @@ def recupera_pagine_tinyfish(prodotti):
             prodotto["url"]
             for prodotto in prodotti
         ],
-        "format": "markdown"
+        "format": "html"
     }
 
     risposta = requests.post(
@@ -435,13 +603,13 @@ def email_sotto_soglia(
 Prodotto:
 {prodotto['nome']}
 
-Prezzo Farmasave:
+Prezzo rilevato:
 {euro(prezzo)}
 
 Soglia:
 {euro(soglia)}
 
-Pagina Farmasave:
+Pagina prodotto:
 {prodotto['url']}
 """
 
@@ -478,7 +646,7 @@ la soglia impostata.
 Prodotto:
 {prodotto['nome']}
 
-Prezzo Farmasave:
+Prezzo rilevato:
 {euro(prezzo)}
 
 Soglia:
@@ -488,7 +656,7 @@ Non riceverai altre notifiche di questo tipo
 finché il prodotto non scenderà nuovamente
 sotto soglia.
 
-Pagina Farmasave:
+Pagina prodotto:
 {prodotto['url']}
 """
 
@@ -518,7 +686,7 @@ esecuzioni consecutive.
 Prodotto:
 {prodotto['nome']}
 
-Pagina Farmasave:
+Pagina prodotto:
 {prodotto['url']}
 
 Il monitor continuerà automaticamente a tentare
@@ -649,14 +817,15 @@ def processa_prodotto(
         ""
     )
 
-    prezzo = estrai_prezzo_farmasave(
+    prezzo, metodo_prezzo = estrai_prezzo(
+        prodotto,
         testo
     )
 
     if prezzo is None:
         print(
-            "ERRORE: Prezzo Farmasave "
-            "non individuato."
+            "ERRORE: prezzo del prodotto non individuato "
+            "con sufficiente affidabilità."
         )
 
         registra_errore(
@@ -676,7 +845,11 @@ def processa_prodotto(
     )
 
     print(
-        f"Prezzo Farmasave: {euro(prezzo)}"
+        f"Prezzo rilevato: {euro(prezzo)}"
+    )
+
+    print(
+        f"Metodo estrazione: {metodo_prezzo}"
     )
 
     print(
@@ -1063,7 +1236,7 @@ def processa_prodotto(
 def main():
 
     print("=" * 70)
-    print("PRICE MONITOR FARMASAVE")
+    print("UNIVERSAL PRICE MONITOR")
     print("=" * 70)
 
     prodotti = carica_json(
