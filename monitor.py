@@ -318,39 +318,46 @@ def testo_visibile_da_html(testo):
     pulito = re.sub(r"<style\b[^>]*>.*?</style>", " ", pulito, flags=re.IGNORECASE | re.DOTALL)
     pulito = re.sub(r"<[^>]+>", " ", pulito)
     pulito = html.unescape(pulito)
-    pulito = re.sub(r"[ \t\r\f\v]+", " ", pulito)
-    pulito = re.sub(r"\n+", "\n", pulito)
-    return pulito
+    # Una sola sequenza di spazi: le etichette e il prezzo possono essere
+    # separati da tag HTML o ritorni a capo.
+    return re.sub(r"\s+", " ", pulito).strip()
 
 
-def estrai_prezzo_testo(testo):
+def estrai_prezzo_testo_contestuale(testo):
     """
-    Fallback prudente sul testo visibile.
-    Accetta solo prezzi vicini a etichette chiaramente riferite al prezzo corrente.
+    Cerca il prezzo corrente in blocchi semanticamente forti della pagina.
+
+    Non prende il prezzo minimo dell'intera pagina: considera soltanto
+    importi molto vicini a etichette tipiche dell'area prezzo del prodotto.
+    Se sono presenti prezzo corrente e prezzo di listino, restituisce il
+    primo importo mostrato dopo l'etichetta.
     """
     visibile = testo_visibile_da_html(testo)
 
-    etichette = [
-        r"prezzo\s+(?:online|web|speciale|scontato|attuale|finale)",
-        r"prezzo",
+    numero = (
+        r"(\d{1,3}(?:[. ]\d{3})*,\d{2}"
+        r"|\d{1,3}(?:[, ]\d{3})*\.\d{2}"
+        r"|\d+[.,]\d{2})"
+    )
+    valuta = r"(?:€|EUR)"
+
+    # Etichette molto forti: indicano normalmente l'inizio del blocco
+    # che contiene il prezzo principale del prodotto.
+    etichette_forti = [
+        r"info\s+prezzi?",
+        r"prezzo\s+(?:online|web|speciale|scontato|attuale|finale|di\s+vendita)",
         r"nostro\s+prezzo",
         r"our\s+price",
         r"sale\s+price",
         r"current\s+price",
         r"special\s+price",
-        r"now",
-        r"ora",
     ]
 
-    numero = r"(\d{1,3}(?:[. ]\d{3})*,\d{2}|\d{1,3}(?:[, ]\d{3})*\.\d{2}|\d+[.,]\d{2})"
-    valuta = r"(?:€|EUR)"
-
-    for etichetta in etichette:
+    for etichetta in etichette_forti:
         patterns = [
-            rf"{etichetta}[^\n]{{0,80}}?{numero}\s*{valuta}",
-            rf"{etichetta}[^\n]{{0,80}}?{valuta}\s*{numero}",
+            rf"{etichetta}.{{0,160}}?{numero}\s*{valuta}",
+            rf"{etichetta}.{{0,160}}?{valuta}\s*{numero}",
         ]
-
         for pattern in patterns:
             match = re.search(pattern, visibile, flags=re.IGNORECASE)
             if match:
@@ -358,7 +365,25 @@ def estrai_prezzo_testo(testo):
                 if prezzo is not None:
                     return prezzo
 
+    # Fallback più prudente per la semplice parola Prezzo: finestra corta
+    # per evitare importi di spedizione, prodotti correlati o footer.
+    patterns = [
+        rf"(?:prezzo|price).{{0,50}}?{numero}\s*{valuta}",
+        rf"(?:prezzo|price).{{0,50}}?{valuta}\s*{numero}",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, visibile, flags=re.IGNORECASE)
+        if match:
+            prezzo = normalizza_prezzo(match.group(1))
+            if prezzo is not None:
+                return prezzo
+
     return None
+
+
+def estrai_prezzo_testo(testo):
+    # Alias mantenuto per compatibilità con la versione precedente.
+    return estrai_prezzo_testo_contestuale(testo)
 
 
 def estrai_prezzo(prodotto, testo):
@@ -377,7 +402,7 @@ def estrai_prezzo(prodotto, testo):
     strategie = [
         ("json_ld", estrai_prezzo_json_ld),
         ("metadata", estrai_prezzo_metadata),
-        ("testo_etichettato", estrai_prezzo_testo),
+        ("testo_contestuale", estrai_prezzo_testo_contestuale),
     ]
 
     for nome_metodo, funzione in strategie:
