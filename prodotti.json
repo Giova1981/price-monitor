@@ -33,5 +33,13 @@
     "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html",
     "soglia": 10.00,
     "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME", "EMAIL_LEO"]
-  }
+  },
+  ,
+{
+  "id": "sun-secure-spf50-farmavola",
+  "nome": "SVR Sun Secure Eau Solaire SPF50+ 200 ml - Farmavola",
+  "url": "https://farmavola.it/svr-sun-secure-eau-solaire-spf50-acqua-solare",
+  "soglia": 12.00,
+  "destinatari": ["EMAIL_MANDARINO"]
+}
 ]
