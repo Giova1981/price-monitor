@@ -47,5 +47,12 @@
     "url": "https://www.redcare.it/integratori/IT935662611/supradyn-ricarica-integratore-multivitaminico-e-minerali-compresse.htm",
     "soglia": 15.00,
     "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
+  },
+  {
+    "id": "wasa original fette croccanti",
+    "nome": "wasa original fette croccanti di segale ricche di fibre - 275 gr",
+    "url": "https://cashback.spesasicura.com/product/details/1843",
+    "soglia": 2.10,
+    "destinatari": ["EMAIL_ME"]
   }
 ]
