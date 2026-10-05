@@ -4,21 +4,21 @@
     "nome": "Sun Secure Eau Solaire SPF50+ 200 ml",
     "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf50.html",
     "soglia": 12.00,
-    "destinatari": ["EMAIL_MANDARINO"]
+    "destinatari": [EMAIL_ME"]
   },
   {
     "id": "sun-secure-spf30",
     "nome": "SVR Sun Secure Eau Solaire SPF30 - Acqua Solare Bi-Fasica Corpo 200 ml",
     "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf30.html",
     "soglia": 12.00,
-    "destinatari": ["EMAIL_MANDARINO", "EMAIL_LEO"]
+    "destinatari": ["EMAIL_LEO"]
   },
   {
     "id": "supradyn-ricarica-60",
     "nome": "Supradyn Ricarica 60 compresse",
     "url": "https://www.farmasave.it/supradyn-ricarica-integratore-di-vitamine-e-sali-minerali-60-compresse-rivestite.html",
     "soglia": 15.00,
-    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
+    "destinatari": ["EMAIL_ME"]
   },
   {
     "id": "citoethyl-3x15ml",
@@ -32,6 +32,34 @@
     "nome": "SVR Topialyse Gel Lavant - Detergente Delicato Per Pelle Molto Secca E Atopica 1000 ml",
     "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html",
     "soglia": 10.00,
-    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME", "EMAIL_LEO"]
-  }
+    "destinatari": ["EMAIL_ME", "EMAIL_LEO"]
+  },
+  {
+  "id": "curasept-prevent-dentifricio-75ml",
+  "nome": "Curasept Prevent Dentifricio 75 ml",
+  "url": "https://www.farmasave.it/curasept-prevent-dentifricio-75ml.html",
+  "soglia": 4.00,
+  "destinatari": ["EMAIL_ME"]
+},
+{
+  "id": "forhans-scov-comfort-touch-40p",
+  "nome": "Forhans Scov Comfort Touch 40P",
+  "url": "https://www.farmasave.it/forhans-scov-comfort-touch-40p.html",
+  "soglia": 2.70,
+  "destinatari": ["EMAIL_ME"]
+},
+{
+  "id": "curasept-prevent-collutorio-300ml",
+  "nome": "Curasept Prevent Collutorio 300 ml",
+  "url": "https://www.farmasave.it/curasept-prevent-collut-300ml.html",
+  "soglia": 5.00,
+  "destinatari": ["EMAIL_ME"]
+},
+{
+  "id": "sinogel-siringa-intra-articolare-3ml",
+  "nome": "Sinogel Siringa Intra-Articolare Preriempita 3 ml + 1 Ago 21G",
+  "url": "https://www.farmasave.it/sinogel-siringa-intra-articolare-preriempita-3ml-1-ago-21.html",
+  "soglia": 100.00,
+  "destinatari": ["EMAIL_ME"]
+}
 ]
