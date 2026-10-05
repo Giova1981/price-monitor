@@ -16,7 +16,7 @@ response = requests.post(
     },
     json={
         "urls": [URL],
-        "format": "json",
+        "format": "html",
         "ttl": 0
     },
     timeout=120
