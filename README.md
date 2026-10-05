@@ -1,302 +1,361 @@
-Farmasave Price Monitor
-An automated price-monitoring system for products listed on Farmasave.
-The application periodically checks configured products, compares the detected Farmasave price with a custom threshold, and sends email notifications when relevant price events occur.
-The system runs entirely in the cloud through GitHub Actions, so no computer needs to remain powered on.
-Features
-- Automatic Farmasave price checks
-- Custom price threshold for each product
-- Multiple recipients per product
-- Email alerts when a product drops below its threshold
-- Additional alerts when a new lower price is detected
-- One-time notification when the price returns above the threshold
-- Automatic handling of newly added recipients
-- Persistent product state
-- Automatic error tracking
-- No repeated alerts when nothing relevant changes
-- Manual or scheduled execution
-- API keys and email addresses stored securely as GitHub Secrets
-How It Works
-Products are configured in:
+Universal Price Monitor
+A lightweight, cloud-based price monitoring system written in Python.
+The project monitors product pages from different e-commerce websites,
+detects the current selling price, compares it with a configurable
+threshold, keeps track of price state, and sends email notifications
+through Brevo when relevant events occur.
+It is designed to run without a permanently powered-on computer and,
+with the services currently used by the project, can operate entirely on
+free tiers.
+Main Features
+- Multi-site product monitoring from normal product URLs.
+- No site-specific configuration required in prodotti.json.
+- Hybrid TinyFish extraction: structured JSON first, automatic HTML
+  fallback when needed.
+- Protection against unit prices, list/old prices, unrelated product
+  prices, and recommendation-section prices.
+- Threshold alerts and new-low notifications.
+- One recovery notification when a price returns above threshold.
+- Multiple recipients per product.
+- Automatic notification of newly added recipients while a product is
+  already below threshold.
+- Consecutive-error tracking and one error notification after repeated
+  failures.
+- Automatic state management through stato.json.
+- Automatic addition/removal of products in the state file.
+- Safe threshold changes without artificial alerts.
+- Cloud execution through GitHub Actions.
+- External scheduling through cron-job.org.
+- No local PC needs to remain powered on.
+Architecture
 prodotti.json
-Each product contains:
-- a unique and stable ID;
-- product name;
-- Farmasave URL;
-- price threshold;
-- one or more notification recipients.
+     |
+     v
+monitor.py
+     |
+     v
+TinyFish Fetch API
+     |
+     +-- JSON structured document
+     |       |
+     |       +-- reliable price found --> price validation
+     |       |
+     |       `-- no reliable price
+     |               |
+     |               v
+     |          HTML fallback
+     |               |
+     +---------------+
+             |
+             v
+      Threshold comparison
+             |
+       +-----+-----+
+       |           |
+       v           v
+  stato.json   Brevo Email API
+Scheduled execution:
+cron-job.org
+     |
+     v
+GitHub Actions workflow_dispatch
+     |
+     v
+monitor.py
+Price Extraction Strategy
+1. TinyFish JSON extraction
+The first request uses TinyFish Fetch with:
+{
+  "format": "json",
+  "ttl": 0
+}
+TinyFish returns a structured document tree together with page metadata
+such as title and description. The monitor tries to identify a reliable
+current price from this structured content.
+For example, a product page may contain:
+60 pz
+0.33 EUR / 1 pz       -> unit price, ignored
+19.79 EUR             -> current selling price
+27.50 EUR             -> list price, ignored
+When independent parts of the returned data agree on the same price,
+confidence is increased.
+2. Automatic HTML fallback
+Some websites expose the product price in TinyFish HTML but omit it from
+the structured JSON document.
+When JSON extraction cannot determine a sufficiently reliable price, the
+monitor automatically requests the same URL in HTML format and analyzes
+the main product area.
+TinyFish JSON
+     |
+     +-- price found --> use JSON price
+     |
+     `-- no reliable price
+             |
+             v
+       TinyFish HTML
+             |
+             v
+       product-area analysis
+             |
+             v
+         current price
+3. Safety first
+If neither JSON nor HTML provides a sufficiently reliable result, the
+monitor does not guess. It records an extraction error instead.
+A missed check is preferable to a false price alert.
+Websites Tested
+  Website       Successful extraction method
+  Farmasave     HTML fallback / Farmasave-compatible extraction
+  Farmavola     Generic HTML product-area extraction
+  Redcare       TinyFish JSON structured extraction
+  SpesaSicura   Generic HTML product-area fallback
+These are tested examples, not a fixed whitelist. The monitor attempts
+extraction from other public e-commerce product pages without requiring
+dedicated site configuration.
+Compatibility can still depend on how a store exposes prices, anti-bot
+protections, JavaScript rendering, authentication,
+geographic/session-specific pricing, and future changes to page
+structure.
+Product Configuration
+Products are configured in prodotti.json.
+[
+  {
+    "id": "example-product",
+    "nome": "Example Product",
+    "url": "https://example.com/product",
+    "soglia": 15.00,
+    "destinatari": ["EMAIL_ME"]
+  }
+]
+  Field                               Description
+  id                                Stable unique product identifier.
+                                      Do not change it casually because
+                                      it links the product to its saved
+                                      state.
+  nome                              Human-readable product name used in
+                                      logs and emails.
+  url                               Direct product-page URL.
+  soglia                            Price threshold.
+  destinatari                       Symbolic
+                                      secret/environment-variable names
+                                      containing recipient email
+                                  addresses.
+No site, CSS selector, variant, parser, or store-specific field is
+required.
+State Management
+stato.json is managed automatically.
 Example:
 {
-  "id": "sun-secure-spf50",
-  "nome": "Sun Secure Eau Solaire SPF50+ 200 ml",
-  "url": "https://www.farmasave.it/sun-secure-eau-solaire-spf50.html",
-  "soglia": 12.00,
-  "destinatari": [
-    "EMAIL_MANDARINO"
-  ]
+  "stato": "sopra",
+  "ultimo_prezzo": 19.79,
+  "minimo_notificato": null,
+  "soglia": 15.0,
+  "errori_consecutivi": 0,
+  "errore_notificato": false,
+  "destinatari_notificati": []
 }
-Real email addresses and API keys are not stored in the repository. They are provided to the application through GitHub Actions Secrets.
-Architecture
-The system uses four main components:
-Python
-monitor.py contains the application logic.
-For each run, the script:
-1. loads prodotti.json;
-2. validates the product configuration;
-3. requests the Farmasave pages through TinyFish Fetch;
-4. extracts the Farmasave price;
-5. compares the price with the configured threshold;
-6. checks the previous product state;
-7. determines whether a notification is required;
-8. sends notifications through Brevo;
-9. updates stato.json.
-GitHub Actions
-GitHub Actions runs the monitor automatically.
-The workflow is stored in:
-.github/workflows/monitor.yml
-The monitor is currently scheduled four times per day:
-Check	Time (Europe/Rome)
-Morning	08:00
-Midday	13:00
-Afternoon	18:00
-Evening	22:00
-
-
-A manual check can also be started at any time from:
-GitHub → Actions → Price Monitor → Run workflow
-The workflow automatically commits changes to stato.json.
-Concurrency control is enabled so that two Price Monitor executions do not update the state file at the same time.
-TinyFish Fetch API
-TinyFish Fetch is used to retrieve Farmasave product pages.
-Direct requests from cloud runners may be blocked by Farmasave's anti-bot protection. TinyFish Fetch retrieves the page content and makes it available to the Python script.
-The monitor searches the returned content for the Prezzo Farmasave value and extracts the corresponding price.
-TinyFish Fetch Limits
-At the time this README was prepared, the relevant published limits for TinyFish Fetch were:
-Limit	TinyFish Fetch
-Cost per fetched URL	$0
-Maximum rate	150 URLs/minute
-Daily limit	1,000 URLs/day
-Separate monthly Fetch limit	None published
-Credit card required for this usage	No
-
-
-TinyFish currently states that Fetch can continue to operate at a $0 wallet balance.
-Service limits and pricing can change, so the official TinyFish documentation should be checked periodically.
-Current TinyFish Usage
-With the current configuration:
-- 5 products
-- 4 checks per day
-the application fetches:
-5 products × 4 checks = 20 URLs/day
-Estimated usage:
-Period	URLs fetched
-One check	5
-One day	20
-30 days	600
-31 days	620
-
-
-Compared with a limit of 1,000 URLs/day, the current configuration uses approximately:
-20 / 1,000 = 2% of the daily limit
-With four checks per day, the purely mathematical daily-limit ceiling would be:
-1,000 / 4 = 250 products
-This is only a theoretical value. With a much larger number of products, request size, processing time, API behavior, GitHub Actions execution time, and other technical limits would also need to be considered.
-Because no separate monthly Fetch quota is currently published, the daily quota is the main TinyFish limit relevant to this project.
-Brevo Transactional Email
-Brevo is used to send transactional email notifications.
-The monitor uses the Brevo API.
-Credentials are stored as GitHub Secrets:
+- stato: current threshold state (sopra or sotto).
+- ultimo_prezzo: most recently detected valid price.
+- minimo_notificato: lowest price already notified during the
+  current below-threshold cycle.
+- soglia: saved threshold.
+- errori_consecutivi: consecutive failed checks.
+- errore_notificato: prevents repeated error emails for the same
+  failure period.
+- destinatari_notificati: recipients already notified during the
+  current below-threshold cycle.
+Normally, stato.json should not be edited manually.
+Notification Logic
+First observation above threshold: state is initialized and no email
+is sent.
+First observation below threshold: an initial price alert is sent.
+Still below threshold: no duplicate email is sent for the same or a
+higher price. A new lower minimum generates a new-low notification.
+New recipient added while already below threshold: only the new
+recipient is notified.
+Price returns above threshold: one recovery email is sent and the
+below-threshold cycle is reset.
+Future drop below threshold: a new notification cycle begins.
+Threshold changed manually: the state is realigned without
+generating an artificial alert solely because the configuration changed.
+Error Handling
+Each product tracks consecutive failures. After:
+3 consecutive failures
+the monitor sends one error notification. Further failures do not
+repeatedly send the same warning.
+After a successful check:
+errori_consecutivi = 0
+errore_notificato = false
+Normal monitoring then resumes.
+General TinyFish failures are also handled without treating missing data
+as a real price change.
+Email Delivery
+Notifications use the Brevo transactional email API.
+Required GitHub repository secrets:
 BREVO_API_KEY
 BREVO_SENDER
-Recipient email addresses are also stored as Secrets, for example:
+TINYFISH_API_KEY
+Recipient addresses are also stored as secrets/environment variables,
+for example:
 EMAIL_ME
 EMAIL_MANDARINO
-This prevents email addresses and API credentials from being exposed in a public repository.
-Brevo Free Plan Limits
-At the time this README was prepared, the relevant Brevo Free plan limit was:
-Limit	Brevo Free
-Email sending limit	300 emails/day
-Approximate 30-day maximum at full daily usage	9,000 emails
-Transactional API	Available
-SMTP	Available
-Unused daily quota carried forward	No
+EMAIL_LEO
+prodotti.json stores only these symbolic names, not the real email
+addresses.
+GitHub Actions and Scheduling
+The main GitHub Actions workflow is triggered with:
+on:
+  workflow_dispatch:
+Scheduling is handled externally through cron-job.org, which calls the
+GitHub API to dispatch the workflow.
+Current schedule:
+08:00
+13:00
+18:00
+22:00
+Europe/Rome
+A fine-grained GitHub Personal Access Token can be used by cron-job.org,
+restricted to the repository and to the minimum Actions permission
+needed to dispatch the workflow.
+Never commit that token to the repository.
+Requirements
+requirements.txt:
+requests
+No browser automation framework is required by the current version.
+Repository Structure
+price-monitor/
+|
+|-- monitor.py
+|-- prodotti.json
+|-- stato.json
+|-- requirements.txt
+|-- README.md
+|
+`-- .github/
+    `-- workflows/
+        |-- monitor.yml
+        `-- test-tinyfish-json.yml   # optional diagnostic workflow
+The TinyFish diagnostic workflow/script is useful while investigating
+how a new website is represented in JSON or HTML, but it is not required
+for normal scheduled monitoring.
+Free-Tier Limits
+TinyFish Fetch
+TinyFish Fetch is currently free, does not draw from the TinyFish
+Wallet, and requires no credit card to start.
+Published limits:
+150 URLs per minute
+1,000 URLs per day
+The monitor first fetches configured URLs in JSON. An additional HTML
+fetch is performed only for products whose JSON result does not contain
+a sufficiently reliable price.
+With four checks per day:
+JSON-only product:       about 4 fetched URLs/day
+Always-HTML-fallback:    about 8 fetched URLs/day
+TinyFish currently publishes a daily Fetch limit rather than a separate
+monthly Fetch allowance.
+Official pricing: https://www.tinyfish.ai/pricing
+Brevo Free
+Brevo Free currently includes:
+300 email sends per day
+Transactional email is supported. The full daily allowance corresponds
+to approximately 9,000 sends over a 30-day month, but the operative
+limit is daily and unused sends do not roll over.
+No credit card is required for the Free plan.
+Official information:
+https://help.brevo.com/hc/en-us/articles/208589409-About-Brevo-s-pricing-plans
+Normal monitor runs do not email every recipient for every product.
+Emails are generated only when a notification condition occurs, so
+typical usage should be far below the daily allowance.
+Service limits and pricing can change. Check the official TinyFish and
+Brevo documentation periodically.
 
-
-The operational limit is 300 emails per day.
-The approximately 9,000 emails/month figure is the mathematical equivalent of using all 300 daily emails for 30 days; the daily quota remains the actual constraint and unused daily capacity is not accumulated.
-Service limits and pricing can change, so the official Brevo documentation should be checked periodically.
-Current Brevo Usage
-The monitor does not send an email at every price check.
-Emails are sent only when a relevant event occurs. Therefore, under normal conditions, email usage is expected to remain far below the Brevo Free daily limit.
-The exact number of emails depends on:
-- how often prices cross thresholds;
-- how often new price lows occur;
-- how many recipients are assigned to each product;
-- whether products return above their thresholds;
-- whether repeated technical errors trigger an error notification.
-Notification Logic
-Price Drops Below the Threshold
-When a product changes from:
-ABOVE THRESHOLD → BELOW THRESHOLD
-an email notification is sent.
-Example:
-Threshold:      €15.00
-Previous price: €15.86
-New price:      €14.70
-An alert is sent.
-New Product Already Below the Threshold
-If a newly added product is already below its threshold during its first successful check, an initial notification is sent.
-Product Remains Below the Threshold
-If the product remains below the threshold but does not reach a new low:
-No additional email is sent.
-This prevents repeated notifications at every scheduled check.
-New Price Low
-If a product is already below its threshold and reaches a price lower than the last notified minimum, a new price-drop notification is sent.
-Example:
-Previously notified minimum: €8.27
-Current price:               €8.27
-No email.
-Later:
-New price: €7.99
-A new price-drop email is sent.
-Price Returns Above the Threshold
-When the product changes from:
-BELOW THRESHOLD → ABOVE THRESHOLD
-one informational email is sent.
-No additional above-threshold emails are sent while the product remains above the threshold.
-If the price later drops below the threshold again, a new notification cycle begins.
-Recipient Management
-Each product can have different recipients.
-Example:
-"destinatari": [
-  "EMAIL_MANDARINO",
-  "EMAIL_ME"
-]
-The monitor records which symbolic recipients have already been notified during the current below-threshold cycle.
-If a new recipient is added while the product is already below its threshold, only the newly added recipient receives the current below-threshold notification.
-Existing recipients do not receive the same alert again.
-If a new recipient is added at the same time that a new price low is detected, a single new-low notification is sent to all currently configured recipients. This prevents the new recipient from receiving two emails during the same execution.
-State Management
-The file:
-stato.json
-is maintained automatically by the monitor.
-For each product, it records information such as:
-- whether the product is above or below its threshold;
-- last detected price;
-- last notified minimum price;
-- configured threshold;
-- recipients already notified during the current cycle;
-- consecutive error count;
-- whether an error notification has already been sent.
-Under normal operation, stato.json should not be edited manually.
-The main file used to manage products is:
-prodotti.json
-Adding a Product
-Add another object to prodotti.json.
-Example:
+Cost Model
+The current architecture does not require:
+- a paid VPS;
+- a computer running 24/7;
+- a paid browser automation service;
+- TinyFish Agent;
+- TinyFish Browser;
+- a paid email plan.
+The project uses TinyFish Fetch, not the paid TinyFish Agent or
+Browser products.
+As long as usage remains within the applicable free-tier limits, the
+monitoring workflow can operate without a recurring service cost.
+Adding a New Product
+Add a new object to prodotti.json, assign a unique stable ID, provide
+the direct product URL, set the threshold, and select the symbolic
+recipient names.
 {
   "id": "new-product",
-  "nome": "Product Name",
-  "url": "https://www.farmasave.it/product.html",
+  "nome": "New Product",
+  "url": "https://shop.example.com/product/123",
   "soglia": 10.00,
-  "destinatari": [
-    "EMAIL_ME"
-  ]
+  "destinatari": ["EMAIL_ME"]
 }
-The product ID must be unique and should remain stable.
-On the next run, the monitor automatically creates the corresponding state entry.
+No change to monitor.py should normally be required.
+At the next run, the corresponding state entry is created automatically.
 Removing a Product
 Remove the product from prodotti.json.
-On the next execution, the corresponding entry is automatically removed from stato.json.
-Changing a Price Threshold
-The threshold can be changed directly in prodotti.json:
-"soglia": 15.00
-The monitor detects the change and realigns the product state.
-A threshold change by itself does not generate an email, because it is a configuration change rather than an actual price movement.
-Error Handling
-Technical errors are kept separate from price events.
-If the page cannot be retrieved or a valid Farmasave price cannot be extracted, the failure is not interpreted as a price change.
-After:
-3 consecutive failed checks
-for the same product, one error notification is sent.
-Additional error notifications are suppressed while the failure continues.
-When a successful check occurs:
-- the consecutive-error counter is reset;
-- the error-notification state is reset;
-- normal price monitoring resumes.
-A later independent sequence of three consecutive errors can therefore trigger a new error notification.
+At the next execution, its obsolete entry is automatically removed from
+stato.json.
+Testing a New Website
+1. Add the product normally to prodotti.json.
+2. Run the monitor manually through GitHub Actions.
+3. Check the detected price and extraction method in the workflow log.
+4. Compare the detected price with the retailer's product page.
+Typical successful JSON extraction:
+Detected price: 19.79 EUR
+Extraction method: json_description+document
+Typical HTML fallback:
+JSON: price not identified. Trying TinyFish HTML fallback...
+Detected price: 2.56 EUR
+Extraction method: html_product_area
+If no price can be identified with sufficient confidence, do not force a
+random numeric match. Use the TinyFish diagnostic workflow/script to
+inspect the JSON and HTML returned for that URL before changing the
+extraction logic.
 Security
-Sensitive information is not stored directly in the repository.
-GitHub Actions Secrets are used for:
-- TinyFish API key;
-- Brevo API key;
-- Brevo sender address;
-- recipient email addresses.
-Current Secrets include:
+Do not commit API keys, email addresses, or GitHub access tokens.
+Keep sensitive values in GitHub Actions repository secrets and in the
+private scheduler configuration.
+Sensitive values include:
 TINYFISH_API_KEY
 BREVO_API_KEY
 BREVO_SENDER
-EMAIL_MANDARINO
-EMAIL_ME
-If a new symbolic recipient is created, for example:
-EMAIL_PAOLO
-it must be:
-1. created as a GitHub Repository Secret;
-2. exposed as an environment variable in monitor.yml;
-3. referenced in prodotti.json.
-Project Structure
-price-monitor/
-│
-├── monitor.py
-├── prodotti.json
-├── stato.json
-├── requirements.txt
-│
-└── .github/
-    └── workflows/
-        └── monitor.yml
-monitor.py
-Contains the application logic.
-prodotti.json
-Contains the product configuration.
-This is the main file that normally needs to be edited.
-stato.json
-Contains the persistent monitoring state and is maintained automatically.
-requirements.txt
-Contains the required Python packages.
-Current dependency:
-requests
-monitor.yml
-Defines the GitHub Actions workflow and scheduled checks.
-Current System Capacity
-With the current configuration:
-- 5 products
-- 4 checks per day
-the monitor performs:
-20 product-page fetches per day
-or approximately:
-- 600 fetches in 30 days
-- 620 fetches in 31 days
-Against a TinyFish Fetch limit of 1,000 URLs/day, this is approximately 2% of the available daily quota.
-For Brevo, the Free plan allows up to 300 emails/day, while this monitor sends messages only when meaningful events occur.
-Under normal usage, both services therefore provide substantial headroom for the current configuration.
-Services Used
-- GitHub — source repository and GitHub Actions automation
-- Python — application logic
-- TinyFish Fetch API — retrieval of Farmasave product pages
-- Brevo Transactional Email API — email notifications
-- Farmasave — source website for monitored prices
-Project Goal
-The project provides an automated price-monitoring solution that:
-- runs entirely in the cloud;
-- does not require a computer to remain powered on;
-- does not require an external database;
-- maintains persistent product state;
-- supports different recipients for different products;
-- avoids repetitive notifications;
-- tracks new price lows;
-- handles temporary technical failures;
-- supports manual and scheduled checks;
-- currently operates within the free usage limits of TinyFish Fetch and Brevo Free.
-Important Note About Service Limits
-TinyFish and Brevo are external services. Their free-plan quotas, pricing, API availability, and terms may change independently of this project.
-The limits documented above reflect the values used when this README was prepared and should be periodically compared with the providers' official documentation.
+EMAIL_*
+GitHub fine-grained PAT used by cron-job.org
+This separation is especially important for public repositories.
+Design Principles
+1. Prefer reliable extraction over aggressive extraction.
+2. Never treat an ambiguous number as a price merely because it looks
+   like one.
+3. Use structured JSON first and HTML only as a fallback.
+4. Keep product configuration independent from individual websites.
+5. Do not require CSS selectors or store-specific configuration for
+   normal use.
+6. Avoid duplicate notifications.
+7. Preserve state between executions.
+8. Keep secrets outside the repository.
+9. Keep the system cloud-based and compatible with free tiers.
+Current Status
+The project now has a stable multi-site baseline using:
+- Python;
+- TinyFish Fetch JSON;
+- TinyFish Fetch HTML fallback;
+- Brevo transactional email;
+- GitHub Actions;
+- cron-job.org;
+- JSON-based product configuration and persistent state.
+The extraction strategy has been validated against multiple real
+e-commerce page structures, including cases where structured JSON is
+sufficient and cases where HTML fallback is necessary.
+Future compatibility should be improved from real test cases rather than
+by accumulating speculative store-specific parsers.
+Disclaimer
+This is a personal monitoring tool.
+Website structures, prices, availability, terms of service, APIs, and
+third-party service limits can change at any time. A successful
+extraction today does not guarantee permanent compatibility with a
+website.
+Always verify important purchase decisions on the retailer's product
+page before ordering.
