@@ -33,26 +33,5 @@
     "url": "https://www.farmasave.it/svr-topialyse-gel-detergente-delicato-protettivo-antisecchezza-1-litro.html",
     "soglia": 10.00,
     "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME", "EMAIL_LEO"]
-  },
-  {
-    "id": "sun-secure-spf50-farmavola",
-    "nome": "SVR Sun Secure Eau Solaire SPF50+ 100 ml - Farmavola",
-    "url": "https://farmavola.it/svr-sun-secure-eau-solaire-spf50-acqua-solare",
-    "soglia": 12.00,
-    "destinatari": ["EMAIL_MANDARINO"]
-  },
-  {
-    "id": "supradyn-ricarica-60-redcare",
-    "nome": "Supradyn Ricarica 60 compresse - Redcare",
-    "url": "https://www.redcare.it/integratori/IT935662611/supradyn-ricarica-integratore-multivitaminico-e-minerali-compresse.htm",
-    "soglia": 15.00,
-    "destinatari": ["EMAIL_MANDARINO", "EMAIL_ME"]
-  },
-  {
-    "id": "wasa original fette croccanti",
-    "nome": "wasa original fette croccanti di segale ricche di fibre - 275 gr",
-    "url": "https://cashback.spesasicura.com/product/details/1843",
-    "soglia": 2.10,
-    "destinatari": ["EMAIL_ME"]
   }
 ]
