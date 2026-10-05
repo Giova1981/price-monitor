@@ -3,8 +3,7 @@ import os
 import requests
 
 URL = (
-    "https://www.redcare.it/integratori/IT935662611/"
-    "supradyn-ricarica-integratore-multivitaminico-e-minerali-compresse.htm"
+    "https://cashback.spesasicura.com/product/details/1843"
 )
 
 api_key = os.environ["TINYFISH_API_KEY"]
