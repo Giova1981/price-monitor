@@ -26,5 +26,5 @@ response.raise_for_status()
 
 data = response.json()
 
-print("===== RISPOSTA TINYFISH JSON =====")
+print("===== RISPOSTA TINYFISH HTML =====")
 print(json.dumps(data, indent=2, ensure_ascii=False))
