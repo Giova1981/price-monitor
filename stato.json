@@ -4,7 +4,7 @@
     "ultimo_prezzo": 19.23,
     "minimo_notificato": null,
     "soglia": 12.0,
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": []
   },
@@ -13,7 +13,7 @@
     "ultimo_prezzo": 15.86,
     "minimo_notificato": null,
     "soglia": 15.0,
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": []
   },
@@ -22,7 +22,7 @@
     "ultimo_prezzo": 14.61,
     "minimo_notificato": null,
     "soglia": 14.0,
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": []
   },
@@ -31,7 +31,7 @@
     "ultimo_prezzo": 20.08,
     "minimo_notificato": null,
     "soglia": 12.0,
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": []
   },
@@ -40,7 +40,7 @@
     "ultimo_prezzo": 8.27,
     "minimo_notificato": 8.26,
     "soglia": 10.0,
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false,
     "destinatari_notificati": [
       "EMAIL_MANDARINO",
@@ -56,7 +56,7 @@
     "destinatari_notificati": [
       "EMAIL_MANDARINO"
     ],
-    "errori_consecutivi": 2,
+    "errori_consecutivi": 0,
     "errore_notificato": false
   },
   "supradyn-ricarica-60-redcare": {
@@ -69,12 +69,12 @@
     "errore_notificato": false
   },
   "wasa original fette croccanti": {
-    "stato": null,
-    "ultimo_prezzo": null,
+    "stato": "sopra",
+    "ultimo_prezzo": 2.56,
     "minimo_notificato": null,
     "soglia": 2.1,
     "destinatari_notificati": [],
-    "errori_consecutivi": 1,
+    "errori_consecutivi": 0,
     "errore_notificato": false
   }
 }
