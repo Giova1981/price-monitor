@@ -234,186 +234,179 @@ def normalizza_prezzo(valore):
         return None
 
 
+def estrai_testi_json(oggetto):
+    """Estrae ricorsivamente le stringhe utili dal document tree TinyFish."""
+    testi = []
+    if isinstance(oggetto, dict):
+        # Nei nodi TinyFish il contenuto leggibile è normalmente in text/items.
+        if isinstance(oggetto.get("text"), str):
+            testi.append(oggetto["text"])
+        items = oggetto.get("items")
+        if isinstance(items, list):
+            for item in items:
+                if isinstance(item, str):
+                    testi.append(item)
+                else:
+                    testi.extend(estrai_testi_json(item))
+        for chiave, valore in oggetto.items():
+            if chiave not in ("text", "items"):
+                testi.extend(estrai_testi_json(valore))
+    elif isinstance(oggetto, list):
+        for elemento in oggetto:
+            testi.extend(estrai_testi_json(elemento))
+    return testi
+
+
 def estrai_prezzo_farmasave(testo):
-    """Estrattore specifico mantenuto per piena compatibilità con Farmasave."""
+    """Compatibilità con la dicitura storica Farmasave, anche nel JSON TinyFish."""
     pattern = (
-        r"Prezzo\s+Farmasave"
-        r"[\s*:#\-]*"
-        r"(\d{1,4}[.,]\d{2})\s*€"
+        r"Prezzo\s+Farmasave[\s*:#\-]*"
+        r"(?:€\s*)?(\d{1,4}[.,]\d{2})(?:\s*€)?"
     )
-
     match = re.search(pattern, testo, flags=re.IGNORECASE)
-    if not match:
-        return None
-
-    return normalizza_prezzo(match.group(1))
+    return normalizza_prezzo(match.group(1)) if match else None
 
 
-def estrai_prezzo_json_ld(testo):
-    """Cerca price nei blocchi JSON-LD Product/Offer, quando TinyFish li conserva."""
-    blocchi = re.findall(
-        r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
-        testo,
-        flags=re.IGNORECASE | re.DOTALL,
+def trova_importi(testo):
+    """Restituisce gli importi monetari con posizione nel testo."""
+    pattern = re.compile(
+        r"(?:(€|EUR)\s*)?"
+        r"(\d{1,3}(?:[. ]\d{3})*[,.]\d{2}|\d+[,.]\d{2})"
+        r"\s*(€|EUR)?",
+        flags=re.IGNORECASE,
     )
+    risultati = []
+    for match in pattern.finditer(testo):
+        if not (match.group(1) or match.group(3)):
+            continue
+        prezzo = normalizza_prezzo(match.group(2))
+        if prezzo is not None:
+            risultati.append((prezzo, match.start(), match.end()))
+    return risultati
 
-    def visita(oggetto):
-        if isinstance(oggetto, dict):
-            tipo = oggetto.get("@type")
-            tipi = tipo if isinstance(tipo, list) else [tipo]
 
-            if "Offer" in tipi or "AggregateOffer" in tipi:
-                for chiave in ("price", "lowPrice"):
-                    if chiave in oggetto:
-                        prezzo = normalizza_prezzo(oggetto.get(chiave))
-                        valuta = str(oggetto.get("priceCurrency", "EUR")).upper()
-                        if prezzo is not None and valuta in ("EUR", "€", ""):
-                            return prezzo
+def candidato_e_prezzo_principale(testo):
+    """Trova il prezzo di acquisto ed esclude unitari e prezzi di listino."""
+    validi = []
+    for prezzo, inizio, fine in trova_importi(testo):
+        prima = testo[max(0, inizio - 70):inizio].lower()
+        dopo = testo[fine:min(len(testo), fine + 70)].lower()
 
-            # Alcuni siti mettono offers dentro Product.
-            for valore in oggetto.values():
-                trovato = visita(valore)
-                if trovato is not None:
-                    return trovato
-
-        elif isinstance(oggetto, list):
-            for elemento in oggetto:
-                trovato = visita(elemento)
-                if trovato is not None:
-                    return trovato
-
-        return None
-
-    for blocco in blocchi:
-        try:
-            dati = json.loads(html.unescape(blocco).strip())
-        except (json.JSONDecodeError, TypeError):
+        # 0,33 €/1 pz; 2,40 €/100 ml; 12,50 €/kg; ecc.
+        if re.search(
+            r"^\s*(?:/|per\s+)\s*(?:1|10|100|1000)?\s*"
+            r"(?:pz|pezzi|ml|cl|l|lt|g|gr|kg|caps|capsule|compresse?)\b",
+            dopo,
+            flags=re.IGNORECASE,
+        ):
             continue
 
-        prezzo = visita(dati)
-        if prezzo is not None:
-            return prezzo
+        # Se l'etichetta precede immediatamente l'importo, è un prezzo non corrente.
+        if re.search(
+            r"(?:prezzo\s+di\s+listino|listino|prezzo\s+consigliato|"
+            r"prezzo\s+precedente|anzich[eé]|prima\s+era|rrp|msrp)\s*€?\s*$",
+            prima,
+            flags=re.IGNORECASE,
+        ):
+            continue
 
-    return None
+        validi.append(prezzo)
+
+    return validi[0] if validi else None
 
 
-def estrai_prezzo_metadata(testo):
-    """Cerca metadati HTML comunemente usati dagli e-commerce."""
+def estrai_prezzo_description(description):
+    """Usa una description commerciale solo quando indica chiaramente il prezzo."""
+    if not isinstance(description, str) or not description.strip():
+        return None
+
     patterns = [
-        r'<meta[^>]+(?:property|name|itemprop)=["\'](?:product:price:amount|og:price:amount|price)["\'][^>]+content=["\']([^"\']+)["\']',
-        r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|name|itemprop)=["\'](?:product:price:amount|og:price:amount|price)["\']',
-    ]
-
-    for pattern in patterns:
-        for valore in re.findall(pattern, testo, flags=re.IGNORECASE):
-            prezzo = normalizza_prezzo(valore)
-            if prezzo is not None:
-                return prezzo
-
-    return None
-
-
-def testo_visibile_da_html(testo):
-    pulito = re.sub(r"<script\b[^>]*>.*?</script>", " ", testo, flags=re.IGNORECASE | re.DOTALL)
-    pulito = re.sub(r"<style\b[^>]*>.*?</style>", " ", pulito, flags=re.IGNORECASE | re.DOTALL)
-    pulito = re.sub(r"<[^>]+>", " ", pulito)
-    pulito = html.unescape(pulito)
-    # Una sola sequenza di spazi: le etichette e il prezzo possono essere
-    # separati da tag HTML o ritorni a capo.
-    return re.sub(r"\s+", " ", pulito).strip()
-
-
-def estrai_prezzo_testo_contestuale(testo):
-    """
-    Cerca il prezzo corrente in blocchi semanticamente forti della pagina.
-
-    Non prende il prezzo minimo dell'intera pagina: considera soltanto
-    importi molto vicini a etichette tipiche dell'area prezzo del prodotto.
-    Se sono presenti prezzo corrente e prezzo di listino, restituisce il
-    primo importo mostrato dopo l'etichetta.
-    """
-    visibile = testo_visibile_da_html(testo)
-
-    numero = (
-        r"(\d{1,3}(?:[. ]\d{3})*,\d{2}"
-        r"|\d{1,3}(?:[, ]\d{3})*\.\d{2}"
-        r"|\d+[.,]\d{2})"
-    )
-    valuta = r"(?:€|EUR)"
-
-    # Etichette molto forti: indicano normalmente l'inizio del blocco
-    # che contiene il prezzo principale del prodotto.
-    etichette_forti = [
-        r"info\s+prezzi?",
-        r"prezzo\s+(?:online|web|speciale|scontato|attuale|finale|di\s+vendita)",
-        r"nostro\s+prezzo",
-        r"our\s+price",
-        r"sale\s+price",
-        r"current\s+price",
-        r"special\s+price",
-    ]
-
-    for etichetta in etichette_forti:
-        patterns = [
-            rf"{etichetta}.{{0,160}}?{numero}\s*{valuta}",
-            rf"{etichetta}.{{0,160}}?{valuta}\s*{numero}",
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, visibile, flags=re.IGNORECASE)
-            if match:
-                prezzo = normalizza_prezzo(match.group(1))
-                if prezzo is not None:
-                    return prezzo
-
-    # Fallback più prudente per la semplice parola Prezzo: finestra corta
-    # per evitare importi di spedizione, prodotti correlati o footer.
-    patterns = [
-        rf"(?:prezzo|price).{{0,50}}?{numero}\s*{valuta}",
-        rf"(?:prezzo|price).{{0,50}}?{valuta}\s*{numero}",
+        r"(?:a\s+solo|a\s+soli|only|our\s+price|sale\s+price|prezzo\s+online)\s*[:\-]?\s*€\s*(\d+[.,]\d{2})",
+        r"(?:a\s+solo|a\s+soli|only|our\s+price|sale\s+price|prezzo\s+online)\s*[:\-]?\s*(\d+[.,]\d{2})\s*€",
     ]
     for pattern in patterns:
-        match = re.search(pattern, visibile, flags=re.IGNORECASE)
+        match = re.search(pattern, description, flags=re.IGNORECASE)
         if match:
-            prezzo = normalizza_prezzo(match.group(1))
-            if prezzo is not None:
-                return prezzo
-
+            return normalizza_prezzo(match.group(1))
     return None
 
 
-def estrai_prezzo_testo(testo):
-    # Alias mantenuto per compatibilità con la versione precedente.
-    return estrai_prezzo_testo_contestuale(testo)
-
-
-def estrai_prezzo(prodotto, testo):
+def estrai_prezzo_blocchi_json(documento):
     """
-    Estrazione multilivello. Restituisce (prezzo, metodo).
-    In caso di ambiguità restituisce (None, None) invece di inventare un prezzo.
+    Analizza i blocchi semantici prodotti da TinyFish. Ogni voce di lista o
+    paragrafo resta un'unità: questo evita di mescolare prezzi di sezioni diverse.
     """
-    dominio = prodotto.get("url", "").lower()
+    candidati = []
+    for testo in estrai_testi_json(documento):
+        if not isinstance(testo, str) or not re.search(r"€|\bEUR\b", testo, re.I):
+            continue
 
-    # Farmasave resta prioritario: è il comportamento già collaudato.
-    if "farmasave.it" in dominio:
-        prezzo = estrai_prezzo_farmasave(testo)
-        if prezzo is not None:
-            return prezzo, "farmasave"
+        prezzo = candidato_e_prezzo_principale(testo)
+        if prezzo is None:
+            continue
 
-    strategie = [
-        ("json_ld", estrai_prezzo_json_ld),
-        ("metadata", estrai_prezzo_metadata),
-        ("testo_contestuale", estrai_prezzo_testo_contestuale),
-    ]
+        basso = testo.lower()
+        punteggio = 0
+        if re.search(r"\b(?:pz|pezzi|ml|cl|l|lt|g|gr|kg|compresse?|capsule)\b", basso):
+            punteggio += 3
+        if re.search(r"(?:il\s+tuo\s+prezzo|prezzo\s+farmasave|prezzo\s+online|info\s+(?:sui\s+)?prezzi|nostro\s+prezzo)", basso):
+            punteggio += 4
+        if "prezzo di listino" in basso:
+            # La presenza del listino nello stesso blocco è tipica di un'offerta prodotto.
+            punteggio += 2
+        if re.search(r"/\s*(?:1|10|100|1000)?\s*(?:pz|ml|cl|l|g|kg)\b", basso):
+            punteggio += 1
+        candidati.append((punteggio, prezzo, testo))
 
-    for nome_metodo, funzione in strategie:
-        prezzo = funzione(testo)
-        if prezzo is not None:
-            return prezzo, nome_metodo
+    if not candidati:
+        return None
 
-    # Ultimo tentativo Farmasave, utile se il dominio cambia/redirecta.
-    prezzo = estrai_prezzo_farmasave(testo)
+    candidati.sort(key=lambda x: x[0], reverse=True)
+    migliore = candidati[0]
+
+    # A parità massima con prezzi diversi non indoviniamo.
+    prezzi_migliori = {p for score, p, _ in candidati if score == migliore[0]}
+    if len(prezzi_migliori) != 1:
+        return None
+    return migliore[1]
+
+
+def estrai_prezzo(prodotto, pagina):
+    """
+    Estrazione basata sul JSON strutturale di TinyFish.
+    Non richiede regole per singolo sito né un campo variante nel prodotto.
+    """
+    description = pagina.get("description", "") or ""
+    documento = pagina.get("text", {})
+    testi = estrai_testi_json(documento)
+    testo_completo = " ".join(testi)
+
+    # 1) Manteniamo la dicitura Farmasave già collaudata, se presente.
+    prezzo = estrai_prezzo_farmasave(testo_completo)
     if prezzo is not None:
-        return prezzo, "farmasave"
+        return prezzo, "json_farmasave"
+
+    # 2) Una description esplicita (es. Redcare: "a solo € 19,79") è molto affidabile.
+    prezzo_desc = estrai_prezzo_description(description)
+
+    # 3) Prezzo ricavato dai blocchi semantici del document tree.
+    prezzo_blocchi = estrai_prezzo_blocchi_json(documento)
+
+    if prezzo_desc is not None and prezzo_blocchi is not None:
+        if prezzo_desc == prezzo_blocchi:
+            return prezzo_desc, "json_description+documento"
+        # Due fonti TinyFish discordanti: meglio errore che falso alert.
+        print(
+            "ATTENZIONE: prezzo description e document tree discordanti: "
+            f"{euro(prezzo_desc)} vs {euro(prezzo_blocchi)}"
+        )
+        return None, None
+
+    if prezzo_desc is not None:
+        return prezzo_desc, "json_description"
+
+    if prezzo_blocchi is not None:
+        return prezzo_blocchi, "json_documento"
 
     return None, None
 
@@ -440,7 +433,7 @@ def recupera_pagine_tinyfish(prodotti):
             prodotto["url"]
             for prodotto in prodotti
         ],
-        "format": "html"
+        "format": "json"
     }
 
     risposta = requests.post(
@@ -837,14 +830,9 @@ def processa_prodotto(
         []
     )
 
-    testo = pagina.get(
-        "text",
-        ""
-    )
-
     prezzo, metodo_prezzo = estrai_prezzo(
         prodotto,
-        testo
+        pagina
     )
 
     if prezzo is None:
