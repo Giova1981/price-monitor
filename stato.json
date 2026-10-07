@@ -36,17 +36,13 @@
     "destinatari_notificati": []
   },
   "topialyse-gel-lavant-1l": {
-    "stato": "sotto",
-    "ultimo_prezzo": 8.27,
-    "minimo_notificato": 8.26,
+    "stato": "sopra",
+    "ultimo_prezzo": 11.25,
+    "minimo_notificato": null,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
-    "destinatari_notificati": [
-      "EMAIL_MANDARINO",
-      "EMAIL_ME",
-      "EMAIL_LEO"
-    ]
+    "destinatari_notificati": []
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
