@@ -54,17 +54,19 @@
     "errore_notificato": false
   },
   "forhans-scov-comfort-touch-40p": {
-    "stato": "sopra",
-    "ultimo_prezzo": 2.91,
-    "minimo_notificato": null,
+    "stato": "sotto",
+    "ultimo_prezzo": 2.63,
+    "minimo_notificato": 2.63,
     "soglia": 2.7,
-    "destinatari_notificati": [],
+    "destinatari_notificati": [
+      "EMAIL_ME"
+    ],
     "errori_consecutivi": 0,
     "errore_notificato": false
   },
   "curasept-prevent-collutorio-300ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 6.17,
+    "ultimo_prezzo": 5.88,
     "minimo_notificato": null,
     "soglia": 5.0,
     "destinatari_notificati": [],
