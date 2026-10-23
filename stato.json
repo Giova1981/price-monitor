@@ -19,7 +19,7 @@
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 14.97,
+    "ultimo_prezzo": 14.73,
     "minimo_notificato": null,
     "soglia": 14.0,
     "errori_consecutivi": 0,
@@ -46,7 +46,7 @@
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 5.47,
+    "ultimo_prezzo": 5.39,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
@@ -54,13 +54,11 @@
     "errore_notificato": false
   },
   "forhans-scov-comfort-touch-40p": {
-    "stato": "sotto",
-    "ultimo_prezzo": 2.69,
-    "minimo_notificato": 2.63,
+    "stato": "sopra",
+    "ultimo_prezzo": 2.92,
+    "minimo_notificato": null,
     "soglia": 2.7,
-    "destinatari_notificati": [
-      "EMAIL_ME"
-    ],
+    "destinatari_notificati": [],
     "errori_consecutivi": 0,
     "errore_notificato": false
   },
@@ -75,7 +73,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 135.7,
+    "ultimo_prezzo": 133.55,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
