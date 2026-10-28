@@ -63,11 +63,13 @@
     "errore_notificato": false
   },
   "curasept-prevent-collutorio-300ml": {
-    "stato": "sopra",
-    "ultimo_prezzo": 5.0,
-    "minimo_notificato": null,
+    "stato": "sotto",
+    "ultimo_prezzo": 4.49,
+    "minimo_notificato": 4.49,
     "soglia": 5.0,
-    "destinatari_notificati": [],
+    "destinatari_notificati": [
+      "EMAIL_ME"
+    ],
     "errori_consecutivi": 0,
     "errore_notificato": false
   },
