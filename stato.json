@@ -54,11 +54,13 @@
     "errore_notificato": false
   },
   "forhans-scov-comfort-touch-40p": {
-    "stato": "sopra",
-    "ultimo_prezzo": 2.92,
-    "minimo_notificato": null,
+    "stato": "sotto",
+    "ultimo_prezzo": 2.65,
+    "minimo_notificato": 2.65,
     "soglia": 2.7,
-    "destinatari_notificati": [],
+    "destinatari_notificati": [
+      "EMAIL_ME"
+    ],
     "errori_consecutivi": 0,
     "errore_notificato": false
   },
