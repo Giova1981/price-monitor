@@ -28,7 +28,7 @@
   },
   "sun-secure-spf30": {
     "stato": "sopra",
-    "ultimo_prezzo": 17.7,
+    "ultimo_prezzo": 20.21,
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
@@ -66,7 +66,7 @@
   },
   "curasept-prevent-collutorio-300ml": {
     "stato": "sotto",
-    "ultimo_prezzo": 4.49,
+    "ultimo_prezzo": 4.54,
     "minimo_notificato": 4.49,
     "soglia": 5.0,
     "destinatari_notificati": [
