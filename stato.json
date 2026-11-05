@@ -19,7 +19,7 @@
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 14.73,
+    "ultimo_prezzo": 14.47,
     "minimo_notificato": null,
     "soglia": 14.0,
     "errori_consecutivi": 0,
@@ -28,7 +28,7 @@
   },
   "sun-secure-spf30": {
     "stato": "sopra",
-    "ultimo_prezzo": 20.2,
+    "ultimo_prezzo": 19.86,
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
@@ -46,7 +46,7 @@
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 5.37,
+    "ultimo_prezzo": 5.28,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
@@ -77,7 +77,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 126.98,
+    "ultimo_prezzo": 121.26,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
