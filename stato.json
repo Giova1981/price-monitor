@@ -37,7 +37,7 @@
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sopra",
-    "ultimo_prezzo": 10.81,
+    "ultimo_prezzo": 10.39,
     "minimo_notificato": null,
     "soglia": 10.0,
     "errori_consecutivi": 0,
@@ -77,7 +77,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 116.47,
+    "ultimo_prezzo": 111.87,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
