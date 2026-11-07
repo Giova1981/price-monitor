@@ -36,13 +36,16 @@
     "destinatari_notificati": []
   },
   "topialyse-gel-lavant-1l": {
-    "stato": "sopra",
-    "ultimo_prezzo": 10.39,
-    "minimo_notificato": null,
+    "stato": "sotto",
+    "ultimo_prezzo": 9.99,
+    "minimo_notificato": 9.99,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
-    "destinatari_notificati": []
+    "destinatari_notificati": [
+      "EMAIL_ME",
+      "EMAIL_LEO"
+    ]
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
@@ -77,7 +80,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 111.87,
+    "ultimo_prezzo": 107.45,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
