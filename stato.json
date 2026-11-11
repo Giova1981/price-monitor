@@ -10,7 +10,7 @@
   },
   "supradyn-ricarica-60": {
     "stato": "sopra",
-    "ultimo_prezzo": 15.86,
+    "ultimo_prezzo": 15.54,
     "minimo_notificato": null,
     "soglia": 15.0,
     "errori_consecutivi": 0,
@@ -37,8 +37,8 @@
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sotto",
-    "ultimo_prezzo": 9.61,
-    "minimo_notificato": 9.61,
+    "ultimo_prezzo": 9.42,
+    "minimo_notificato": 9.42,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
@@ -49,7 +49,7 @@
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 5.28,
+    "ultimo_prezzo": 5.17,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
@@ -80,7 +80,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 113.11,
+    "ultimo_prezzo": 116.23,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
