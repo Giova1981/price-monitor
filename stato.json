@@ -21,7 +21,7 @@
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 14.47,
+    "ultimo_prezzo": 14.7,
     "minimo_notificato": null,
     "soglia": 14.0,
     "errori_consecutivi": 0,
@@ -30,7 +30,7 @@
   },
   "sun-secure-spf30": {
     "stato": "sopra",
-    "ultimo_prezzo": 19.86,
+    "ultimo_prezzo": 20.18,
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
@@ -60,7 +60,7 @@
   },
   "forhans-scov-comfort-touch-40p": {
     "stato": "sotto",
-    "ultimo_prezzo": 2.6,
+    "ultimo_prezzo": 2.65,
     "minimo_notificato": 2.6,
     "soglia": 2.7,
     "destinatari_notificati": [
@@ -82,7 +82,7 @@
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 118.85,
+    "ultimo_prezzo": 118.81,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
