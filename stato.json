@@ -10,8 +10,8 @@
   },
   "supradyn-ricarica-60": {
     "stato": "sotto",
-    "ultimo_prezzo": 14.34,
-    "minimo_notificato": 14.34,
+    "ultimo_prezzo": 14.17,
+    "minimo_notificato": 14.17,
     "soglia": 15.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
@@ -39,8 +39,8 @@
   },
   "topialyse-gel-lavant-1l": {
     "stato": "sotto",
-    "ultimo_prezzo": 8.69,
-    "minimo_notificato": 8.69,
+    "ultimo_prezzo": 8.52,
+    "minimo_notificato": 8.52,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
@@ -51,7 +51,7 @@
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 4.77,
+    "ultimo_prezzo": 4.67,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
