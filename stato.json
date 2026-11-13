@@ -9,15 +9,13 @@
     "destinatari_notificati": []
   },
   "supradyn-ricarica-60": {
-    "stato": "sotto",
-    "ultimo_prezzo": 14.17,
-    "minimo_notificato": 14.17,
+    "stato": "sopra",
+    "ultimo_prezzo": 15.86,
+    "minimo_notificato": null,
     "soglia": 15.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
-    "destinatari_notificati": [
-      "EMAIL_ME"
-    ]
+    "destinatari_notificati": []
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
@@ -38,20 +36,17 @@
     "destinatari_notificati": []
   },
   "topialyse-gel-lavant-1l": {
-    "stato": "sotto",
-    "ultimo_prezzo": 8.4,
-    "minimo_notificato": 8.4,
+    "stato": "sopra",
+    "ultimo_prezzo": 11.25,
+    "minimo_notificato": null,
     "soglia": 10.0,
     "errori_consecutivi": 0,
     "errore_notificato": false,
-    "destinatari_notificati": [
-      "EMAIL_ME",
-      "EMAIL_LEO"
-    ]
+    "destinatari_notificati": []
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 4.4,
+    "ultimo_prezzo": 5.37,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
