@@ -19,7 +19,7 @@
   },
   "citoethyl-3x15ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 14.7,
+    "ultimo_prezzo": 14.47,
     "minimo_notificato": null,
     "soglia": 14.0,
     "errori_consecutivi": 0,
@@ -66,7 +66,7 @@
   },
   "curasept-prevent-collutorio-300ml": {
     "stato": "sotto",
-    "ultimo_prezzo": 4.47,
+    "ultimo_prezzo": 4.54,
     "minimo_notificato": 4.47,
     "soglia": 5.0,
     "destinatari_notificati": [
