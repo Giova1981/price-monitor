@@ -28,7 +28,7 @@
   },
   "sun-secure-spf30": {
     "stato": "sopra",
-    "ultimo_prezzo": 19.84,
+    "ultimo_prezzo": 19.83,
     "minimo_notificato": null,
     "soglia": 12.0,
     "errori_consecutivi": 0,
@@ -46,7 +46,7 @@
   },
   "curasept-prevent-dentifricio-75ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 5.28,
+    "ultimo_prezzo": 5.24,
     "minimo_notificato": null,
     "soglia": 4.0,
     "destinatari_notificati": [],
