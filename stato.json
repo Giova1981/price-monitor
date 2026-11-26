@@ -65,19 +65,17 @@
     "errore_notificato": false
   },
   "curasept-prevent-collutorio-300ml": {
-    "stato": "sotto",
-    "ultimo_prezzo": 4.47,
-    "minimo_notificato": 4.47,
+    "stato": "sopra",
+    "ultimo_prezzo": 6.1,
+    "minimo_notificato": null,
     "soglia": 5.0,
-    "destinatari_notificati": [
-      "EMAIL_ME"
-    ],
+    "destinatari_notificati": [],
     "errori_consecutivi": 0,
     "errore_notificato": false
   },
   "sinogel-siringa-intra-articolare-3ml": {
     "stato": "sopra",
-    "ultimo_prezzo": 109.79,
+    "ultimo_prezzo": 109.74,
     "minimo_notificato": null,
     "soglia": 100.0,
     "destinatari_notificati": [],
